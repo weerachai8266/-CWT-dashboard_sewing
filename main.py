@@ -7,6 +7,9 @@ import select
 
 class SewingDashboard:
     def __init__(self):
+        self.last_ok_barcode = ""
+        self.last_ng_barcode = ""
+
         # Database connection
         try:
             self.db = pymysql.connect(
@@ -147,11 +150,11 @@ class SewingDashboard:
             self.cleanup()
 
     def process_ok_scan(self, barcode):
-        # Add your OK scan processing logic here
+        self.last_ok_barcode = barcode
         pass
 
     def process_ng_scan(self, barcode):
-        # Add your NG scan processing logic here
+        self.last_ng_barcode = barcode
         pass
 
     def draw_dashboard(self):
@@ -186,7 +189,7 @@ class SewingDashboard:
 
         # Message box
         self.draw_box((30, 350, self.width - 60, 80))
-        self.draw_text("Part", self.font_label, (50, 375))
+        self.draw_text(self.last_ok_barcode, self.font_label, (50, 375))
 
     def cleanup(self):
         self.scanner_ok.ungrab()
