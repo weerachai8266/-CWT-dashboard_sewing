@@ -2,13 +2,15 @@ from evdev import InputDevice, categorize, ecodes
 import pymysql
 import select
 from datetime import datetime
+import pygame
+import sys
 
 # Connect to database
 db = pymysql.connect(
     host="192.168.0.14",
     user="sew_py",
     password="cwt258963",
-    database="sewing"
+    database="automotive"
 )
 cursor = db.cursor()
 
@@ -32,7 +34,7 @@ shift_states = {
 def insert_ok(item_code):
     item_code = item_code.upper()
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    sql = "INSERT INTO 3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
+    sql = "INSERT INTO sewing_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
     try:
         cursor.execute(sql, (item_code, now))
         db.commit()
@@ -47,7 +49,7 @@ def update_ng(item_code):
 
     # หารายการ status = 10 ของวันนี้
     sql_select = """
-        SELECT id FROM 3rd
+        SELECT id FROM sewing_3rd
         WHERE item = %s AND status = 10 AND DATE(created_at) = %s
         ORDER BY created_at DESC
         LIMIT 1
@@ -57,14 +59,14 @@ def update_ng(item_code):
 
     if result:
         # อัปเดต status = 20
-        sql_update = "UPDATE 3rd SET status = 20, updated_at = %s WHERE id = %s"
+        sql_update = "UPDATE sewing_3rd SET status = 20, updated_at = %s WHERE id = %s"
         cursor.execute(sql_update, (now, result[0]))
         db.commit()
         print(f"[NG] ❗ตรวจชิ้นงานเสีย: {item_code}")
 
     else:
         # ไม่มีรายการที่ status = 10 → ให้เพิ่มใหม่ด้วย status = 20
-        sql_insert = "INSERT INTO 3rd (item, qty, status, created_at) VALUES (%s, 1, 20, %s)"
+        sql_insert = "INSERT INTO sewing_3rd (item, qty, status, created_at) VALUES (%s, 1, 20, %s)"
         cursor.execute(sql_insert, (item_code, now))
         db.commit()
         print(f"[NG] ➕ เพิ่มใหม่ (ไม่มีรายการที่อัปเดตได้): {item_code}")
