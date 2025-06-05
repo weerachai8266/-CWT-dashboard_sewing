@@ -1,16 +1,12 @@
 import pymysql
-import pygame
-import sys
-from datetime import datetime
 from evdev import InputDevice, categorize, ecodes
 import select
+from datetime import datetime
+import pygame
+import sys
 
-class SewingDashboard:
+class DatabaseManager:
     def __init__(self):
-        self.last_ok_barcode = ""
-        self.last_ng_barcode = ""
-
-        # Database connection
         try:
             self.db = pymysql.connect(
                 host="192.168.0.14",
@@ -23,50 +19,39 @@ class SewingDashboard:
             print(f"Database connection failed: {e}")
             sys.exit(1)
 
-        # Initialize pygame
-        pygame.init()
-        self.UPDATE_EVENT = pygame.USEREVENT + 1
-        pygame.time.set_timer(self.UPDATE_EVENT, 1000)
-
-        # Setup display
-        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        pygame.display.set_caption("Production Dashboard")
-        self.width, self.height = self.screen.get_size()
-
-        # Setup scanners
+    def insert_ok(self, item_code):
+        item_code = item_code.upper()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        sql = "INSERT INTO sewing_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
         try:
-            self.scanner_ok = InputDevice('/dev/input/scan_ok')
-            self.scanner_ng = InputDevice('/dev/input/scan_ng')
-            self.scanner_ok.grab()
-            self.scanner_ng.grab()
-        except Exception as e:
-            print(f"Scanner setup failed: {e}")
-            sys.exit(1)
+            self.cursor.execute(sql, (item_code, now))
+            self.db.commit()
+            print(f"[OK] รับงานเข้าระบบ: {item_code}")
+        except pymysql.err.IntegrityError as e:
+            print(f"[ERROR] ไม่สามารถเพิ่ม: {item_code} (อาจซ้ำ)")
 
-        # Scanner buffers
-        self.barcode_buffers = {
-            self.scanner_ok.fd: '',
-            self.scanner_ng.fd: ''
-        }
-
-        # Initialize fonts and colors
-        self.setup_fonts()
-        self.setup_colors()
-        
-        # Initialize values
-        self.target_value = self.get_target_from_cap()
-        self.man_value = self.get_man_count()
-
-    def setup_fonts(self):
-        self.font_header = pygame.font.SysFont('Arial', 50, bold=True)
-        self.font_label = pygame.font.SysFont('Arial', 40, bold=True)
-        self.font_percent = pygame.font.SysFont('Arial', 80, bold=True)
-        self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
-
-    def setup_colors(self):
-        self.BLACK = (0, 0, 0)
-        self.WHITE = (255, 255, 255)
-        self.GREEN = (0, 175, 0)
+    def update_ng(self, item_code):
+        item_code = item_code.upper()
+        today = datetime.now().strftime('%Y-%m-%d')
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        sql_select = """
+            SELECT id FROM sewing_3rd
+            WHERE item = %s AND status = 10 AND DATE(created_at) = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+        """
+        self.cursor.execute(sql_select, (item_code, today))
+        result = self.cursor.fetchone()
+        if result:
+            sql_update = "UPDATE sewing_3rd SET status = 20, updated_at = %s WHERE id = %s"
+            self.cursor.execute(sql_update, (now, result[0]))
+            self.db.commit()
+            print(f"[NG] ตรวจชิ้นงานเสีย: {item_code}")
+        else:
+            sql_insert = "INSERT INTO sewing_3rd (item, qty, status, created_at) VALUES (%s, 1, 20, %s)"
+            self.cursor.execute(sql_insert, (item_code, now))
+            self.db.commit()
+            print(f"[NG] เพิ่มใหม่ (ไม่มีรายการที่อัปเดตได้): {item_code}")
 
     def get_target_from_cap(self):
         try:
@@ -88,6 +73,85 @@ class SewingDashboard:
             print(f"Error fetching man count: {e}")
             return "00"
 
+    def close(self):
+        self.cursor.close()
+        self.db.close()
+
+class BarcodeReader:
+    def __init__(self, ok_path='/dev/input/scan_ok', ng_path='/dev/input/scan_ng'):
+        self.scanner_ok = InputDevice(ok_path)
+        self.scanner_ng = InputDevice(ng_path)
+        self.scanner_ok.grab()
+        self.scanner_ng.grab()
+        self.barcode_buffers = {
+            self.scanner_ok.fd: '',
+            self.scanner_ng.fd: ''
+        }
+        self.shift_states = {
+            self.scanner_ok.fd: False,
+            self.scanner_ng.fd: False
+        }
+
+    def read_barcode(self, device):
+        buffer = ""
+        shift = False
+        while True:
+            for event in device.read():
+                if event.type == ecodes.EV_KEY:
+                    key_event = categorize(event)
+                    if key_event.keystate == 1:  # Key down
+                        keycode = key_event.keycode
+                        if isinstance(keycode, list):
+                            keycode = keycode[0]
+                        if keycode in ['KEY_LEFTSHIFT', 'KEY_RIGHTSHIFT']:
+                            shift = True
+                            continue
+                        if keycode == 'KEY_ENTER':
+                            return buffer
+                        key = keycode.replace('KEY_', '')
+                        char = ''
+                        if key.isdigit():
+                            char = key
+                        elif key == 'MINUS':
+                            char = '_' if shift else '-'
+                        elif len(key) == 1 and key.isalpha():
+                            char = key.upper() if shift else key.lower()
+                        if char:
+                            buffer += char
+                        shift = False
+
+    def cleanup(self):
+        self.scanner_ok.ungrab()
+        self.scanner_ng.ungrab()
+
+class Dashboard:
+    def __init__(self, db_manager, barcode_reader):
+        self.db_manager = db_manager
+        self.barcode_reader = barcode_reader
+        pygame.init()
+        self.UPDATE_EVENT = pygame.USEREVENT + 1
+        pygame.time.set_timer(self.UPDATE_EVENT, 1000)
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        pygame.display.set_caption("Production Dashboard")
+        self.width, self.height = self.screen.get_size()
+        self.setup_fonts()
+        self.setup_colors()
+        self.last_ok_barcode = ""
+        self.last_ng_barcode = ""
+        self.target_value = self.db_manager.get_target_from_cap()
+        self.man_value = self.db_manager.get_man_count()
+
+    def setup_fonts(self):
+        self.font_header = pygame.font.SysFont('Arial', 50, bold=True)
+        self.font_label = pygame.font.SysFont('Arial', 40, bold=True)
+        self.font_percent = pygame.font.SysFont('Arial', 80, bold=True)
+        self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
+
+    def setup_colors(self):
+        self.BLACK = (0, 0, 0)
+        self.WHITE = (255, 255, 255)
+        self.GREEN = (0, 175, 0)
+
     def draw_box(self, rect, fill_color=None, border_color=None, border=3, radius=10):
         if fill_color is None: fill_color = self.BLACK
         if border_color is None: border_color = self.WHITE
@@ -104,100 +168,67 @@ class SewingDashboard:
             rect.topleft = pos
         self.screen.blit(surface, rect)
 
-    def handle_scanner_input(self, scanner, callback):
-        for event in scanner.read():
-            if event.type == ecodes.EV_KEY:
-                key_event = categorize(event)
-                if key_event.keystate == 1:  # Key down
-                    if isinstance(key_event.keycode, list):
-                        keycode = key_event.keycode[0]
-                    else:
-                        keycode = key_event.keycode
-                    
-                    if keycode == 'KEY_ENTER':
-                        barcode = self.barcode_buffers[scanner.fd]
-                        self.barcode_buffers[scanner.fd] = ''
-                        callback(barcode)
-                    else:
-                        self.barcode_buffers[scanner.fd] += key_event.keycode
+    def process_ok_scan(self, barcode):
+        self.last_ok_barcode = barcode
+        self.db_manager.insert_ok(barcode)
+
+    def process_ng_scan(self, barcode):
+        self.last_ng_barcode = barcode
+        self.db_manager.update_ng(barcode)
 
     def run(self):
         try:
             while True:
-                # Handle events
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT or (
                         event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE
                     ):
                         return
                     elif event.type == self.UPDATE_EVENT:
-                        self.target_value = self.get_target_from_cap()
-                        self.man_value = self.get_man_count()
+                        self.target_value = self.db_manager.get_target_from_cap()
+                        self.man_value = self.db_manager.get_man_count()
 
-                # Handle scanner inputs
-                r, _, _ = select.select([self.scanner_ok.fd, self.scanner_ng.fd], [], [], 0)
+                r, _, _ = select.select([self.barcode_reader.scanner_ok.fd, self.barcode_reader.scanner_ng.fd], [], [], 0)
                 for fd in r:
-                    if fd == self.scanner_ok.fd:
-                        self.handle_scanner_input(self.scanner_ok, self.process_ok_scan)
-                    elif fd == self.scanner_ng.fd:
-                        self.handle_scanner_input(self.scanner_ng, self.process_ng_scan)
+                    if fd == self.barcode_reader.scanner_ok.fd:
+                        barcode = self.barcode_reader.read_barcode(self.barcode_reader.scanner_ok)
+                        self.process_ok_scan(barcode)
+                    elif fd == self.barcode_reader.scanner_ng.fd:
+                        barcode = self.barcode_reader.read_barcode(self.barcode_reader.scanner_ng)
+                        self.process_ng_scan(barcode)
 
-                # Draw dashboard
                 self.draw_dashboard()
                 pygame.display.flip()
-
         finally:
-            self.cleanup()
-
-    def process_ok_scan(self, barcode):
-        self.last_ok_barcode = barcode
-        pass
-
-    def process_ng_scan(self, barcode):
-        self.last_ng_barcode = barcode
-        pass
+            self.barcode_reader.cleanup()
+            self.db_manager.close()
+            pygame.quit()
 
     def draw_dashboard(self):
         self.screen.fill(self.BLACK)
-
-        # Top Bar
         self.draw_box((30, 20, 1300, 100))
         self.draw_text("Line 3RD", self.font_header, (50, 45))
-
-        # DateTime
         self.draw_box((1350, 20, 538, 100))
         now = datetime.now()
         self.draw_text(f"DATE : {now:%d/%m/%Y}", self.font_small, (1380, 35))
         self.draw_text(f"Time : {now:%H:%M:%S}", self.font_small, (1380, 75))
-
-        # Main boxes
         self.draw_box((30, 140, 420, 180))
         self.draw_text("Efficiency", self.font_label, (50, 160))
         self.draw_text("00.00 %", self.font_percent, (240, 270), self.GREEN, True)
-
         self.draw_box((470, 140, 420, 180))
         self.draw_text("Output", self.font_label, (490, 160))
         self.draw_text("00", self.font_percent, (680, 270), self.GREEN, True)
-
         self.draw_box((910, 140, 420, 180))
         self.draw_text("Target / hr", self.font_label, (930, 160))
         self.draw_text(self.target_value, self.font_percent, (1120, 270), self.GREEN, True)
-
         self.draw_box((1350, 140, 420, 180))
         self.draw_text("Man", self.font_label, (1370, 160))
         self.draw_text(self.man_value, self.font_percent, (1580, 270), self.GREEN, True)
-
-        # Message box
         self.draw_box((30, 350, self.width - 60, 80))
         self.draw_text(self.last_ok_barcode, self.font_label, (50, 375))
 
-    def cleanup(self):
-        self.scanner_ok.ungrab()
-        self.scanner_ng.ungrab()
-        self.cursor.close()
-        self.db.close()
-        pygame.quit()
-
 if __name__ == '__main__':
-    dashboard = SewingDashboard()
+    db_manager = DatabaseManager()
+    barcode_reader = BarcodeReader()
+    dashboard = Dashboard(db_manager, barcode_reader)
     dashboard.run()
