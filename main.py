@@ -91,35 +91,6 @@ class BarcodeReader:
             self.scanner_ok.fd: False,
             self.scanner_ng.fd: False
         }
-
-    def read_barcode(self, device):
-        buffer = ""
-        shift = False
-        while True:
-            for event in device.read():
-                if event.type == ecodes.EV_KEY:
-                    key_event = categorize(event)
-                    if key_event.keystate == 1:  # Key down
-                        keycode = key_event.keycode
-                        if isinstance(keycode, list):
-                            keycode = keycode[0]
-                        if keycode in ['KEY_LEFTSHIFT', 'KEY_RIGHTSHIFT']:
-                            shift = True
-                            continue
-                        if keycode == 'KEY_ENTER':
-                            return buffer
-                        key = keycode.replace('KEY_', '')
-                        char = ''
-                        if key.isdigit():
-                            char = key
-                        elif key == 'MINUS':
-                            char = '_' if shift else '-'
-                        elif len(key) == 1 and key.isalpha():
-                            char = key.upper() if shift else key.lower()
-                        if char:
-                            buffer += char
-                        shift = False
-
     def cleanup(self):
         self.scanner_ok.ungrab()
         self.scanner_ng.ungrab()
@@ -190,12 +161,41 @@ class Dashboard:
 
                 r, _, _ = select.select([self.barcode_reader.scanner_ok.fd, self.barcode_reader.scanner_ng.fd], [], [], 0)
                 for fd in r:
-                    if fd == self.barcode_reader.scanner_ok.fd:
-                        barcode = self.barcode_reader.read_barcode(self.barcode_reader.scanner_ok)
-                        self.process_ok_scan(barcode)
-                    elif fd == self.barcode_reader.scanner_ng.fd:
-                        barcode = self.barcode_reader.read_barcode(self.barcode_reader.scanner_ng)
-                        self.process_ng_scan(barcode)
+                    device = self.barcode_reader.scanner_ok if fd == self.barcode_reader.scanner_ok.fd else self.barcode_reader.scanner_ng
+                    for event in device.read():
+                        if event.type == ecodes.EV_KEY:
+                            key_event = categorize(event)
+                            if key_event.keystate == 1:  # Key down
+                                keycode = key_event.keycode
+                                if isinstance(keycode, list):
+                                    keycode = keycode[0]
+
+                                if keycode in ['KEY_LEFTSHIFT', 'KEY_RIGHTSHIFT']:
+                                    self.barcode_reader.shift_states[fd] = True
+                                    continue
+
+                                if keycode == 'KEY_ENTER':
+                                    barcode = self.barcode_reader.barcode_buffers[fd].upper()
+                                    if fd == self.barcode_reader.scanner_ok.fd:
+                                        self.process_ok_scan(barcode)
+                                    else:
+                                        self.process_ng_scan(barcode)
+                                    self.barcode_reader.barcode_buffers[fd] = ''
+                                    continue
+
+                                key = keycode.replace('KEY_', '')
+                                char = ''
+                                if key.isdigit():
+                                    char = key
+                                elif key == 'MINUS':
+                                    char = '_' if self.barcode_reader.shift_states[fd] else '-'
+                                elif len(key) == 1 and key.isalpha():
+                                    char = key.upper() if self.barcode_reader.shift_states[fd] else key.lower()
+
+                                if char:
+                                    self.barcode_reader.barcode_buffers[fd] += char
+
+                                self.barcode_reader.shift_states[fd] = False
 
                 self.draw_dashboard()
                 pygame.display.flip()
