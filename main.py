@@ -63,14 +63,34 @@ class DatabaseManager:
             print(f"Error fetching cap target: {e}")
             return "00"
 
-    def get_man_count(self):
+    def get_man_plan(self):
         try:
-            sql = "SELECT `3rd` FROM sewing_man ORDER BY created_at DESC LIMIT 1"
+            sql = "SELECT `3rd_plan` FROM sewing_man ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result else "00"
         except Exception as e:
-            print(f"Error fetching man count: {e}")
+            print(f"Error fetching man plan: {e}")
+            return "00"
+
+    def get_man_act(self):
+        try:
+            sql = "SELECT `3rd_act` FROM sewing_man ORDER BY created_at DESC LIMIT 1"
+            self.cursor.execute(sql)
+            result = self.cursor.fetchone()
+            return str(result[0]) if result else "00"
+        except Exception as e:
+            print(f"Error fetching man act: {e}")
+            return "00"
+
+    def get_output_count(self):
+        try:
+            sql = "SELECT COUNT(`qty`) FROM `sewing_3rd` WHERE DATE(created_at) = CURDATE() LIMIT 1"
+            self.cursor.execute(sql)
+            result = self.cursor.fetchone()
+            return str(result[0]) if result else "00"
+        except Exception as e:
+            print(f"Error fetching OP count: {e}")
             return "00"
 
     def close(self):
@@ -109,23 +129,28 @@ class Dashboard:
         self.setup_colors()
         self.last_ok_barcode = ""
         self.last_ng_barcode = ""
+
         self.target_value = self.db_manager.get_target_from_cap()
-        self.man_value = self.db_manager.get_man_count()
+        self.man_plan = self.db_manager.get_man_plan()
+        self.man_act = self.db_manager.get_man_act()
+        self.output_value = self.db_manager.get_output_count()
 
     def setup_fonts(self):
         self.font_header = pygame.font.SysFont('Arial', 50, bold=True)
         self.font_label = pygame.font.SysFont('Arial', 40, bold=True)
         self.font_percent = pygame.font.SysFont('Arial', 80, bold=True)
         self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
+        self.font_big = pygame.font.SysFont('Arial', 100, bold=True)
 
     def setup_colors(self):
         self.BLACK = (0, 0, 0)
         self.WHITE = (255, 255, 255)
         self.GREEN = (0, 175, 0)
+        self.GREY = (128, 128, 128)
 
     def draw_box(self, rect, fill_color=None, border_color=None, border=3, radius=10):
         if fill_color is None: fill_color = self.BLACK
-        if border_color is None: border_color = self.WHITE
+        if border_color is None: border_color = self.GREY
         pygame.draw.rect(self.screen, fill_color, rect, border_radius=radius)
         pygame.draw.rect(self.screen, border_color, rect, border, border_radius=radius)
 
@@ -157,7 +182,9 @@ class Dashboard:
                         return
                     elif event.type == self.UPDATE_EVENT:
                         self.target_value = self.db_manager.get_target_from_cap()
-                        self.man_value = self.db_manager.get_man_count()
+                        self.man_plan = self.db_manager.get_man_plan()
+                        self.man_act = self.db_manager.get_man_act()
+                        self.output_value = self.db_manager.get_output_count()
 
                 r, _, _ = select.select([self.barcode_reader.scanner_ok.fd, self.barcode_reader.scanner_ng.fd], [], [], 0)
                 for fd in r:
@@ -170,32 +197,42 @@ class Dashboard:
                                 if isinstance(keycode, list):
                                     keycode = keycode[0]
 
+                                # จัดการ Shift key
                                 if keycode in ['KEY_LEFTSHIFT', 'KEY_RIGHTSHIFT']:
                                     self.barcode_reader.shift_states[fd] = True
-                                    continue
-
-                                if keycode == 'KEY_ENTER':
-                                    barcode = self.barcode_reader.barcode_buffers[fd].upper()
+                                elif keycode == 'KEY_ENTER':
+                                    barcode = self.barcode_reader.barcode_buffers[fd]
                                     if fd == self.barcode_reader.scanner_ok.fd:
                                         self.process_ok_scan(barcode)
                                     else:
                                         self.process_ng_scan(barcode)
                                     self.barcode_reader.barcode_buffers[fd] = ''
-                                    continue
-
-                                key = keycode.replace('KEY_', '')
-                                char = ''
-                                if key.isdigit():
-                                    char = key
-                                elif key == 'MINUS':
-                                    char = '_' if self.barcode_reader.shift_states[fd] else '-'
-                                elif len(key) == 1 and key.isalpha():
-                                    char = key.upper() if self.barcode_reader.shift_states[fd] else key.lower()
-
-                                if char:
-                                    self.barcode_reader.barcode_buffers[fd] += char
-
-                                self.barcode_reader.shift_states[fd] = False
+                                    self.barcode_reader.shift_states[fd] = False
+                                else:
+                                    # แปลง keycode เป็นตัวอักษร
+                                    char = None
+                                    key = keycode.replace('KEY_', '')
+                                    
+                                    # จัดการตัวเลข
+                                    if key.isdigit():
+                                        char = key
+                                    # จัดการเครื่องหมายพิเศษ
+                                    elif key == 'MINUS':
+                                        char = '_' if self.barcode_reader.shift_states[fd] else '-'
+                                    elif key == 'EQUAL':
+                                        char = '+' if self.barcode_reader.shift_states[fd] else '='
+                                    elif key == 'GRAVE':
+                                        char = '~' if self.barcode_reader.shift_states[fd] else '`'
+                                    # จัดการตัวอักษร
+                                    elif len(key) == 1 and key.isalpha():
+                                        char = key.upper() if self.barcode_reader.shift_states[fd] else key.lower()
+                                    
+                                    if char:
+                                        self.barcode_reader.barcode_buffers[fd] += char
+                            
+                            elif key_event.keystate == 0:  # Key up
+                                if key_event.keycode in ['KEY_LEFTSHIFT', 'KEY_RIGHTSHIFT']:
+                                    self.barcode_reader.shift_states[fd] = False
 
                 self.draw_dashboard()
                 pygame.display.flip()
@@ -206,26 +243,61 @@ class Dashboard:
 
     def draw_dashboard(self):
         self.screen.fill(self.BLACK)
+        # Header
         self.draw_box((30, 20, 1300, 100))
-        self.draw_text("Line 3RD", self.font_header, (50, 45))
+        self.draw_text("Line Name : 3RD", self.font_header, (50, 45))
+        # date time
         self.draw_box((1350, 20, 538, 100))
         now = datetime.now()
-        self.draw_text(f"DATE : {now:%d/%m/%Y}", self.font_small, (1380, 35))
-        self.draw_text(f"Time : {now:%H:%M:%S}", self.font_small, (1380, 75))
-        self.draw_box((30, 140, 420, 180))
-        self.draw_text("Efficiency", self.font_label, (50, 160))
-        self.draw_text("00.00 %", self.font_percent, (240, 270), self.GREEN, True)
-        self.draw_box((470, 140, 420, 180))
-        self.draw_text("Output", self.font_label, (490, 160))
-        self.draw_text("00", self.font_percent, (680, 270), self.GREEN, True)
-        self.draw_box((910, 140, 420, 180))
-        self.draw_text("Target / hr", self.font_label, (930, 160))
-        self.draw_text(self.target_value, self.font_percent, (1120, 270), self.GREEN, True)
-        self.draw_box((1350, 140, 420, 180))
-        self.draw_text("Man", self.font_label, (1370, 160))
-        self.draw_text(self.man_value, self.font_percent, (1580, 270), self.GREEN, True)
-        self.draw_box((30, 350, self.width - 60, 80))
-        self.draw_text(self.last_ok_barcode, self.font_label, (50, 375))
+        self.draw_text(" DATE : " + now.strftime("%d/%m/%Y"), self.font_small, (1380, 35))
+        self.draw_text(" TIME  : " + now.strftime("%H:%M:%S"), self.font_small, (1380, 75))
+
+        # Efficiency
+        self.draw_box((30, 140, 442.5, 200))
+        self.draw_text("Efficiency", self.font_label, (50, 155))
+        self.draw_text("00.00 %", self.font_percent, (240, 300), self.GREEN, True)
+        # Output
+        self.draw_box((502.5, 140, 442.5, 200))
+        self.draw_text("Output", self.font_label, (490, 155))
+        self.draw_text(self.output_value, self.font_percent, (680, 300), self.GREEN, True)
+        # Target
+        self.draw_box((975, 140, 442.5, 200))
+        self.draw_text("Target / hr", self.font_label, (930, 155))
+        self.draw_text(self.target_value, self.font_percent, (1120, 300), self.GREEN, True)
+        # Man
+        self.draw_box((1447.5, 140, 442.5, 200))
+        pygame.draw.line(self.screen, self.GREY, (1350, 200), (1888, 200), 3)  # Horizontal line
+        pygame.draw.line(self.screen, self.GREY, (1620, 200), (1620, 340), 3)  # Vertical line
+        self.draw_text("Man", self.font_label, (1570, 155))
+        self.draw_text("ACT", self.font_label, (1430, 210))
+        self.draw_text("PLAN", self.font_label, (1700, 210))
+        self.draw_text(self.man_act, self.font_percent, (1470, 300), self.GREEN, True)
+        self.draw_text(self.man_plan, self.font_percent, (1750, 300), self.GREEN, True)
+        # Last OK Barcode
+        self.draw_box((30, 380, self.width - 60, 220))
+        self.draw_text("PART", self.font_label, (50, 400))
+        self.draw_text(self.last_ok_barcode, self.font_big, (170, 460))
+        # OK
+        self.draw_box((30, 630, 420, 200))
+        self.draw_text("OK", self.font_label, (50, 650))
+        self.draw_text("00.00 %", self.font_percent, (240, 780), self.GREEN, True)
+        # NG
+        self.draw_box((470, 630, 420, 200))
+        self.draw_text("NG", self.font_label, (490, 650))
+        self.draw_text(self.output_value, self.font_percent, (680, 780), self.GREEN, True)
+        # Target
+        self.draw_box((910, 630, 420, 200))
+        self.draw_text("Target / hr", self.font_label, (930, 650))
+        self.draw_text("Target", self.font_percent, (1120, 780), self.GREEN, True)
+        # Man
+        self.draw_box((1350, 630, 538, 200))
+        pygame.draw.line(self.screen, self.GREY, (1350, 695), (1888, 695), 3)  # Horizontal line
+        pygame.draw.line(self.screen, self.GREY, (1620, 695), (1620, 825), 3)  # Vertical line
+        self.draw_text("Man", self.font_label, (1570, 650))
+        self.draw_text("ACT", self.font_label, (1430, 210))
+        self.draw_text("PLAN", self.font_label, (1700, 210))
+        self.draw_text(self.man_act, self.font_percent, (1470, 780), self.GREEN, True)
+        self.draw_text(self.man_plan, self.font_percent, (1750, 780), self.GREEN, True)
 
 if __name__ == '__main__':
     db_manager = DatabaseManager()
