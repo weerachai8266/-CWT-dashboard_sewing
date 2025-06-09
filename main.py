@@ -129,6 +129,8 @@ class Dashboard:
         self.setup_colors()
         self.last_ok_barcode = ""
         self.last_ng_barcode = ""
+        self.error_message = ""  # เพิ่มตัวแปรเก็บข้อความ error
+        self.show_error = False  # เพิ่มตัวแปรควบคุมการแสดง error
 
         self.target_value = self.db_manager.get_target_from_cap()
         self.man_plan = self.db_manager.get_man_plan()
@@ -140,13 +142,15 @@ class Dashboard:
         self.font_label = pygame.font.SysFont('Arial', 40, bold=True)
         self.font_percent = pygame.font.SysFont('Arial', 80, bold=True)
         self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
-        self.font_big = pygame.font.SysFont('Arial', 100, bold=True)
+        self.font_big = pygame.font.SysFont('Consolas', 100, bold=True)
+        self.font_TH = pygame.font.SysFont('Consolas', 80, bold=True)
 
     def setup_colors(self):
         self.BLACK = (0, 0, 0)
         self.WHITE = (255, 255, 255)
         self.GREEN = (0, 175, 0)
         self.GREY = (128, 128, 128)
+        self.RED = (175, 0, 0)
 
     def draw_box(self, rect, fill_color=None, border_color=None, border=3, radius=10):
         if fill_color is None: fill_color = self.BLACK
@@ -165,8 +169,15 @@ class Dashboard:
         self.screen.blit(surface, rect)
 
     def process_ok_scan(self, barcode):
-        self.last_ok_barcode = barcode
-        self.db_manager.insert_ok(barcode)
+        self.scanned_text = barcode
+        if 15 < len(self.scanned_text) <= 20:
+            self.last_ok_barcode = barcode
+            self.db_manager.insert_ok(barcode)
+            self.show_error = False  # ไม่แสดง error
+        else:
+            self.error_message = u"Not saved. Please scan again."
+            self.show_error = True   # แสดง error
+
 
     def process_ng_scan(self, barcode):
         self.last_ng_barcode = barcode
@@ -252,28 +263,35 @@ class Dashboard:
         self.draw_text(" DATE : " + now.strftime("%d/%m/%Y"), self.font_small, (1380, 35))
         self.draw_text(" TIME  : " + now.strftime("%H:%M:%S"), self.font_small, (1380, 75))
 
-        self.draw_box((30, 140, self.width - 60, 180))
+        self.draw_box((30, 150, self.width - 60, 170))
         self.draw_text("PART", self.font_label, (50, 160))
-        self.draw_text(self.last_ok_barcode, self.font_big, (170, 210))
+        # self.draw_text(self.last_ok_barcode, self.font_big, (170, 210))
+        if self.show_error:
+            self.draw_text(self.error_message, self.font_TH, (170, 210), self.RED)
+        else:
+            self.draw_text(self.last_ok_barcode, self.font_big, (170, 210))
 
         # Efficiency
         self.draw_box((30, 350, 915, 700))
-        self.draw_box((975, 350, 915, 700))
         self.draw_text("Efficiency", self.font_header, (50, 370))
-
-        # self.draw_text("00.00 %", self.font_percent, (240, 300), self.GREEN, True)
+        pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
+        self.draw_text("00.00 %", self.font_percent, (630, 360), self.GREEN, False)
         # Output
         self.draw_text("Output", self.font_header, (50, 450))
-        # self.draw_text(self.output_value, self.font_percent, (680, 300), self.GREEN, True)
+        pygame.draw.line(self.screen, self.GREY, (50, 510), (910, 510), 1)
+        self.draw_text(self.output_value, self.font_percent, (630, 440), self.GREEN, False)
         # Target
         self.draw_text("Target / hr", self.font_header, (50, 530))
-        # self.draw_text(self.target_value, self.font_percent, (1120, 300), self.GREEN, True)
+        pygame.draw.line(self.screen, self.GREY, (50, 590), (910, 590), 1)
+        self.draw_text(self.target_value, self.font_percent, (630, 520), self.GREEN, False)
         # Man
         self.draw_text("Man", self.font_header, (50, 610))
+        pygame.draw.line(self.screen, self.GREY, (50, 670), (910, 670), 1)
         # self.draw_text("ACT", self.font_label, (1520, 210))
         # self.draw_text("PLAN", self.font_label, (1720, 210))
-        # self.draw_text(self.man_act, self.font_percent, (1555, 300), self.GREEN, True)
-        # self.draw_text(self.man_plan, self.font_percent, (1770, 300), self.GREEN, True)
+        self.draw_text(self.man_act + " / " + self.man_plan, self.font_percent, (630, 600), self.GREEN, False)
+
+        self.draw_box((975, 350, 915, 700))
 
 if __name__ == '__main__':
     db_manager = DatabaseManager()
