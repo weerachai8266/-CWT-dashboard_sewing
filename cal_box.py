@@ -2,7 +2,7 @@
 screen_width = 1920
 margin = 30           # ขอบซ้ายและขวา
 spacing = 30          # ระยะห่างระหว่างกล่อง
-box_count = 4         # จำนวนกล่อง
+box_count = 2         # จำนวนกล่อง
 
 # คำนวณความกว้างของกล่อง
 total_spacing = (box_count - 1) * spacing

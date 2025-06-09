@@ -252,52 +252,28 @@ class Dashboard:
         self.draw_text(" DATE : " + now.strftime("%d/%m/%Y"), self.font_small, (1380, 35))
         self.draw_text(" TIME  : " + now.strftime("%H:%M:%S"), self.font_small, (1380, 75))
 
+        self.draw_box((30, 140, self.width - 60, 180))
+        self.draw_text("PART", self.font_label, (50, 160))
+        self.draw_text(self.last_ok_barcode, self.font_big, (170, 210))
+
         # Efficiency
-        self.draw_box((30, 140, 442.5, 200))
-        self.draw_text("Efficiency", self.font_label, (50, 155))
-        self.draw_text("00.00 %", self.font_percent, (240, 300), self.GREEN, True)
+        self.draw_box((30, 350, 915, 700))
+        self.draw_box((975, 350, 915, 700))
+        self.draw_text("Efficiency", self.font_header, (50, 370))
+
+        # self.draw_text("00.00 %", self.font_percent, (240, 300), self.GREEN, True)
         # Output
-        self.draw_box((502.5, 140, 442.5, 200))
-        self.draw_text("Output", self.font_label, (490, 155))
-        self.draw_text(self.output_value, self.font_percent, (680, 300), self.GREEN, True)
+        self.draw_text("Output", self.font_header, (50, 450))
+        # self.draw_text(self.output_value, self.font_percent, (680, 300), self.GREEN, True)
         # Target
-        self.draw_box((975, 140, 442.5, 200))
-        self.draw_text("Target / hr", self.font_label, (930, 155))
-        self.draw_text(self.target_value, self.font_percent, (1120, 300), self.GREEN, True)
+        self.draw_text("Target / hr", self.font_header, (50, 530))
+        # self.draw_text(self.target_value, self.font_percent, (1120, 300), self.GREEN, True)
         # Man
-        self.draw_box((1447.5, 140, 442.5, 200))
-        pygame.draw.line(self.screen, self.GREY, (1350, 200), (1888, 200), 3)  # Horizontal line
-        pygame.draw.line(self.screen, self.GREY, (1620, 200), (1620, 340), 3)  # Vertical line
-        self.draw_text("Man", self.font_label, (1570, 155))
-        self.draw_text("ACT", self.font_label, (1430, 210))
-        self.draw_text("PLAN", self.font_label, (1700, 210))
-        self.draw_text(self.man_act, self.font_percent, (1470, 300), self.GREEN, True)
-        self.draw_text(self.man_plan, self.font_percent, (1750, 300), self.GREEN, True)
-        # Last OK Barcode
-        self.draw_box((30, 380, self.width - 60, 220))
-        self.draw_text("PART", self.font_label, (50, 400))
-        self.draw_text(self.last_ok_barcode, self.font_big, (170, 460))
-        # OK
-        self.draw_box((30, 630, 420, 200))
-        self.draw_text("OK", self.font_label, (50, 650))
-        self.draw_text("00.00 %", self.font_percent, (240, 780), self.GREEN, True)
-        # NG
-        self.draw_box((470, 630, 420, 200))
-        self.draw_text("NG", self.font_label, (490, 650))
-        self.draw_text(self.output_value, self.font_percent, (680, 780), self.GREEN, True)
-        # Target
-        self.draw_box((910, 630, 420, 200))
-        self.draw_text("Target / hr", self.font_label, (930, 650))
-        self.draw_text("Target", self.font_percent, (1120, 780), self.GREEN, True)
-        # Man
-        self.draw_box((1350, 630, 538, 200))
-        pygame.draw.line(self.screen, self.GREY, (1350, 695), (1888, 695), 3)  # Horizontal line
-        pygame.draw.line(self.screen, self.GREY, (1620, 695), (1620, 825), 3)  # Vertical line
-        self.draw_text("Man", self.font_label, (1570, 650))
-        self.draw_text("ACT", self.font_label, (1430, 210))
-        self.draw_text("PLAN", self.font_label, (1700, 210))
-        self.draw_text(self.man_act, self.font_percent, (1470, 780), self.GREEN, True)
-        self.draw_text(self.man_plan, self.font_percent, (1750, 780), self.GREEN, True)
+        self.draw_text("Man", self.font_header, (50, 610))
+        # self.draw_text("ACT", self.font_label, (1520, 210))
+        # self.draw_text("PLAN", self.font_label, (1720, 210))
+        # self.draw_text(self.man_act, self.font_percent, (1555, 300), self.GREEN, True)
+        # self.draw_text(self.man_plan, self.font_percent, (1770, 300), self.GREEN, True)
 
 if __name__ == '__main__':
     db_manager = DatabaseManager()
