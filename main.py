@@ -367,25 +367,48 @@ class Dashboard:
             self.draw_text(self.last_ok_barcode, self.font_big, (170, 210))
 
         # Left Panel
+        gab_label = 85
+        gab_draw = 85
+        gab_value = 85
         self.draw_box((30, 350, 915, 700))
         self.draw_text("Efficiency", self.font_header, (50, 370))
         pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
-        self.draw_text("00.00 %", self.font_percent, (630, 360), self.GREEN, False)
+        self.draw_text(self.eff, self.font_percent, (630, 360), self.GREEN, False)
 
-        self.draw_text("Output", self.font_header, (50, 450))
-        pygame.draw.line(self.screen, self.GREY, (50, 510), (910, 510), 1)
-        self.draw_text(self.output_value, self.font_percent, (630, 440), self.GREEN, False)
+        self.draw_text("Output", self.font_header, (50, 370+(gab_label*1)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_draw*1)), (910, 430+(gab_draw*1)), 1)
+        self.draw_text(self.output_value, self.font_percent, (630, 360+(gab_value*1)), self.GREEN, False)
 
-        self.draw_text("Target / hr", self.font_header, (50, 530))
-        pygame.draw.line(self.screen, self.GREY, (50, 590), (910, 590), 1)
-        self.draw_text(self.target_value, self.font_percent, (630, 520), self.GREEN, False)
+        self.draw_text("Target / hr", self.font_header, (50, 370+(gab_label*2)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_draw*2)), (910, 430+(gab_draw*2)), 1)
+        self.draw_text(self.target_value, self.font_percent, (630, 360+(gab_value*2)), self.GREEN, False)
 
-        self.draw_text("Man", self.font_header, (50, 610))
-        pygame.draw.line(self.screen, self.GREY, (50, 670), (910, 670), 1)
-        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (630, 600), self.GREEN, False)
+        self.draw_text("Man", self.font_header, (50, 370+(gab_label*3)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_draw*3)), (910, 430+(gab_draw*3)), 1)
+        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (630, 360+(gab_value*3)), self.GREEN, False)
+
+        self.draw_text("spare", self.font_header, (50, 370+(gab_label*4)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_draw*4)), (910, 430+(gab_draw*4)), 1)
+        self.draw_text("00", self.font_percent, (630, 360+(gab_value*4)), self.GREEN, False)
+
+        self.draw_text("spare", self.font_header, (50, 370+(gab_label*5)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_draw*5)), (910, 430+(gab_draw*5)), 1)
+        self.draw_text("00", self.font_percent, (630, 360+(gab_value*5)), self.GREEN, False)
+
+        self.draw_text("spare", self.font_header, (50, 370+(gab_label*6)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_draw*6)), (910, 430+(gab_draw*6)), 1)
+        self.draw_text("00", self.font_percent, (630, 360+(gab_value*6)), self.GREEN, False)
+
+        self.draw_text("spare", self.font_header, (50, 370+(gab_label*7)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_draw*7)), (910, 430+(gab_draw*7)), 1)
+        self.draw_text("00", self.font_percent, (630, 360+(gab_value*7)), self.GREEN, False)
+
 
         # Right Panel
         self.draw_box((975, 350, 915, 700))
+        self.draw_text("08:00", self.font_header, (995, 370))
+        pygame.draw.line(self.screen, self.GREY, (995, 430), (1855, 430), 1)
+        self.draw_text("00.00 %", self.font_percent, (1575, 360), self.GREEN, False)
 
     def run(self):
         try:
@@ -401,6 +424,7 @@ class Dashboard:
                         self.man_plan = self.db_manager.get_man_plan()
                         self.man_act = self.db_manager.get_man_act()
                         self.output_value = self.db_manager.get_output_count()
+                        self.eff = self.output_value / self.target_value * 100
 
                 barcode = self.scanner.read_barcode()
                 if barcode:
