@@ -5,6 +5,8 @@ from datetime import datetime
 import pygame
 import sys
 import os
+import threading
+import queue
 
 class Scanner:
     def __init__(self):
@@ -16,79 +18,53 @@ class Scanner:
             print("1. เสียบ Scanner เรียบร้อยแล้ว")
             print("2. Scanner เปิดทำงานอยู่")
             print("3. ถ้าจำเป็นให้รันด้วย sudo")
-            sys.exit(1)
+            os._exit(1)
 
         try:
-            # ตั้งค่า device
             self.device.read()  # ล้าง events เก่า
             self.device.grab()  # จอง device ไว้ใช้งาน
-            
-            # เพิ่มการตั้งค่า evdev
+
             import fcntl
-            # ตั้งค่า non-blocking mode
             flag = fcntl.fcntl(self.device.fd, fcntl.F_GETFL)
             fcntl.fcntl(self.device.fd, fcntl.F_SETFL, flag | os.O_NONBLOCK)
-            
-            self.buffer = ''
-            self.shift = False
+
             print(f"✅ เริ่มใช้งานอุปกรณ์สำเร็จ")
         except Exception as e:
             print(f"❌ ไม่สามารถใช้งานอุปกรณ์ได้: {e}")
             print("ลองรันโปรแกรมด้วย sudo")
-            sys.exit(1)
+            os._exit(1)
 
         self.buffer = ''
-        self.shift = False
+        self.barcode_queue = queue.Queue()
+        self._stop_event = threading.Event()
+        self.thread = threading.Thread(target=self._barcode_loop, daemon=True)
+        self.thread.start()
 
     def find_scanner(self):
         devices = [InputDevice(path) for path in list_devices()]
-    
         print("\nรายการอุปกรณ์ที่พบทั้งหมด:")
         print("-" * 50)
         for i, dev in enumerate(devices):
             print(f"{i+1}. {dev.path}: {dev.name}")
         print("-" * 50)
 
-        # คำที่ไม่ต้องการ (ข้าม)
         skip_keywords = [
-            'consumer control', 
-            'system control', 
-            'mouse', 
-            'dell',
-            'vc4-hdmi',
-            'keyboard system',
-            'keyboard consumer',
-            'touchpad'
+            'consumer control', 'system control', 'mouse', 'dell',
+            'vc4-hdmi', 'keyboard system', 'keyboard consumer', 'touchpad'
         ]
-        
-        # คำที่เกี่ยวข้องกับ scanner
         scanner_keywords = [
-            'scanner',
-            'barcode',
-            'newtologic',
-            'datalogic',
-            'honeywell',
-            'zebra',
-            'hid',
-            'symbol'
+            'scanner', 'barcode', 'newtologic', 'datalogic',
+            'honeywell', 'zebra', 'symbol'
         ]
 
         available_devices = []
-        
-        # ค้นหา Scanner ที่เป็นไปได้
         for dev in devices:
             name = dev.name.lower()
-            
-            # ข้ามอุปกรณ์ที่ไม่ต้องการ
             if any(keyword in name for keyword in skip_keywords):
                 continue
-                
-            # ถ้าเจอ scanner keyword ให้เพิ่มเข้า list
             if any(keyword in name for keyword in scanner_keywords):
                 available_devices.append(dev)
                 continue
-                
-            # ถ้าเป็น keyboard ทั่วไป (ไม่ใช่ consumer/system) ให้เพิ่มเข้า list
             if 'keyboard' in name and not any(skip in name for skip in skip_keywords):
                 available_devices.append(dev)
 
@@ -101,11 +77,9 @@ class Scanner:
             print(f"✅ พบอุปกรณ์ที่ใช้งานได้: {selected_device.path} ({selected_device.name})")
             return selected_device
 
-        # ถ้าพบหลายอุปกรณ์ ให้ผู้ใช้เลือก
         print("\nพบหลายอุปกรณ์ที่ใช้งานได้:")
         for i, dev in enumerate(available_devices):
             print(f"{i+1}. {dev.path}: {dev.name}")
-        
         while True:
             try:
                 choice = input("\nเลือกอุปกรณ์ (1-" + str(len(available_devices)) + "): ")
@@ -117,93 +91,61 @@ class Scanner:
                 else:
                     print("❌ กรุณาเลือกหมายเลขที่ถูกต้อง")
             except ValueError:
-                print("❌ กรุณาป้อนตัวเลขเท่านั้น")   
+                print("❌ กรุณาป้อนตัวเลขเท่านั้น")
 
-    def read_barcode(self):
+    def _barcode_loop(self):
+        while not self._stop_event.is_set():
+            try:
+                r, _, _ = select.select([self.device.fd], [], [], 0.01)
+                if not r:
+                    continue
+                for event in self.device.read():
+                    if event.type == ecodes.EV_KEY and event.value == 1:
+                        if event.code == ecodes.KEY_ENTER:
+                            if len(self.buffer) > 0:
+                                self.barcode_queue.put(self.buffer)
+                                self.buffer = ''
+                        else:
+                            try:
+                                key = ecodes.KEY[event.code].replace('KEY_', '')
+                                char = self.translate_key(key)
+                                if char:
+                                    self.buffer += char
+                            except Exception:
+                                pass
+            except Exception:
+                self.buffer = ''
+                continue
+
+    def get_barcode(self):
         try:
-            # อ่านข้อมูลจาก scanner
-            r, _, _ = select.select([self.device.fd], [], [], 0.01)  # 10ms timeout 0.01
-            
-            if not r:  # ถ้าไม่มีข้อมูลเข้ามา
-                return None
-                
-            # อ่านข้อมูลทั้งหมดที่มี
-            for event in self.device.read():
-                if event.type == ecodes.EV_KEY and event.value == 1:  # Key pressed
-                    if event.code == ecodes.KEY_ENTER:
-                        if len(self.buffer) > 0:
-                            barcode_data = self.buffer
-                            # print(f"Scanned: {barcode_data}")  # DEBUG
-                            self.buffer = ''  # ล้าง buffer
-                            return barcode_data
-                    else:
-                        # เพิ่มตัวอักษรเข้า buffer
-                        try:
-                            # แปลง keycode เป็นตัวอักษรตาม translate_key
-                            key = ecodes.KEY[event.code].replace('KEY_', '')
-                            # print(f"Key pressed: {key}")  # DEBUG
-                            char = self.translate_key(key)
-                            if char:
-                                self.buffer += char
-                                print(f"Buffer: {self.buffer}")  # DEBUG
-                        except:
-                            # print(f"Key error: {e}")  # DEBUG
-                            pass
-                # elif event.type == ecodes.EV_KEY and event.code in [ecodes.KEY_LEFTSHIFT, ecodes.KEY_RIGHTSHIFT]:
-                #     self.shift = event.value == 1
-                
-            return None
-            
-        except Exception as e:
-            print(f"Read error: {e}")  # DEBUG
-            self.buffer = ''
+            return self.barcode_queue.get_nowait()
+        except queue.Empty:
             return None
 
     def translate_key(self, key):
         try:
-            # จัดการตัวเลข
             if key.isdigit():
                 return key
-
-            # จัดการตัวอักษร - เป็นตัวพิมพ์ใหญ่เสมอ
             elif len(key) == 1 and key.isalpha():
-                return key.upper()  # ส่งคืนตัวพิมพ์ใหญ่เสมอ ไม่สนใจ shift
-
-            # จัดการเครื่องหมายพิเศษ
+                return key.upper()
             special_chars = {
-                'MINUS': '-',
-                'EQUAL': '=', 
-                'LEFTBRACE': '[',
-                'RIGHTBRACE': ']',
-                'SEMICOLON': ';',
-                'APOSTROPHE': "'",
-                'GRAVE': '`',
-                'BACKSLASH': '\\',
-                'COMMA': ',',
-                'DOT': '.',
-                'SLASH': '/'
+                'MINUS': '-', 'EQUAL': '=', 'LEFTBRACE': '[', 'RIGHTBRACE': ']',
+                'SEMICOLON': ';', 'APOSTROPHE': "'", 'GRAVE': '`', 'BACKSLASH': '\\',
+                'COMMA': ',', 'DOT': '.', 'SLASH': '/'
             }
-            
             if key in special_chars:
                 return special_chars[key]
-
-            # DEBUG: แสดงค่า key ที่ไม่รู้จัก
             print(f"Unknown key: {key}")
-            
             return None
         except Exception as e:
             print(f"❌ แปลงคีย์ผิดพลาด: {e}")
             return None
-            
+
     def cleanup(self):
-        try:
-            # ล้าง buffer ทันทีที่เลิกใช้
-            if hasattr(self, 'buffer'):
-                self.buffer = ''
-            if hasattr(self, 'device') and self.device:
-                self.device.ungrab()
-        except:
-            pass
+        self._stop_event.set()
+        if hasattr(self, 'device') and self.device:
+            self.device.ungrab()
 
 class DatabaseManager:
     def __init__(self):
@@ -350,9 +292,11 @@ class Dashboard:
 
     def draw_dashboard(self):
         self.screen.fill(self.BLACK)
+
         # Header
         self.draw_box((30, 20, 1300, 100))
         self.draw_text("Line Name : 3RD", self.font_header, (50, 45))
+
         # DateTime
         self.draw_box((1350, 20, 538, 100))
         now = datetime.now()
@@ -361,7 +305,7 @@ class Dashboard:
 
         # Barcode Display
         self.draw_box((30, 150, self.width - 60, 170))
-        self.draw_text("PART", self.font_label, (50, 160))
+        self.draw_text("Part", self.font_label, (50, 160))
         if self.show_error:
             self.draw_text(self.error_message, self.font_TH, (170, 210), self.RED)
         else:
@@ -403,7 +347,6 @@ class Dashboard:
         self.draw_text("spare", self.font_header, (50, 370+(gab_left_label*7)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*7)), (910, 430+(gab_left_draw*7)), 1)
         self.draw_text("00", self.font_percent, (630, 360+(gab_left_value*7)), self.GREEN, False)
-
 
         # Right Panel
         gap_right_label =   40
@@ -449,7 +392,7 @@ class Dashboard:
                         self.output_value = self.db_manager.get_output_count()
                         self.eff = round(float(self.output_value) / float(self.target_value) * 100, 2) if float(self.target_value) != 0 else 0.00
 
-                barcode = self.scanner.read_barcode()
+                barcode = self.scanner.get_barcode()
                 if barcode:
                     self.process_ok_scan(barcode)
 
