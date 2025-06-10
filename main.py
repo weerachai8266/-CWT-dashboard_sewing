@@ -265,14 +265,20 @@ class Dashboard:
         pygame.draw.rect(self.screen, fill_color, rect, border_radius=radius)
         pygame.draw.rect(self.screen, border_color, rect, border, border_radius=radius)
 
-    def draw_text(self, text, font, pos, color=None, center=False):
-        if color is None: color = self.WHITE
+    def draw_text(self, text, font, pos, color=None, align="left"):
+        if color is None:
+            color = self.WHITE
         surface = font.render(str(text), True, color)
         rect = surface.get_rect()
-        if center:
-            rect.center = pos
-        else:
-            rect.topleft = pos
+        x, y = pos
+
+        if align == "center":
+            rect.center = (x, y)
+        elif align == "right":
+            rect.topright = (x, y)
+        else:  # "left"
+            rect.topleft = (x, y)
+
         self.screen.blit(surface, rect)
 
     def process_ok_scan(self, barcode):
@@ -318,64 +324,74 @@ class Dashboard:
         self.draw_box((30, 350, 915, 730))
         self.draw_text("Efficiency", self.font_header, (50, 370))
         pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
-        self.draw_text(f"{self.eff}%", self.font_percent, (630, 360), self.GREEN, False)
+        self.draw_text(f"{self.eff}%", self.font_percent, (910, 360), self.GREEN, align="right")
 
         self.draw_text("Output", self.font_header, (50, 370+(gab_left_label*1)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*1)), (910, 430+(gab_left_draw*1)), 1)
-        self.draw_text(self.output_value, self.font_percent, (630, 360+(gab_left_value*1)), self.GREEN, False)
+        self.draw_text(self.output_value, self.font_percent, (910, 360+(gab_left_value*1)), self.GREEN, align="right")
 
         self.draw_text("Target / hr", self.font_header, (50, 370+(gab_left_label*2)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*2)), (910, 430+(gab_left_draw*2)), 1)
-        self.draw_text(self.target_value, self.font_percent, (630, 360+(gab_left_value*2)), self.GREEN, False)
+        self.draw_text(self.target_value, self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
 
-        self.draw_text("Man", self.font_header, (50, 370+(gab_left_label*3)))
+        self.draw_text("Diff", self.font_header, (50, 370+(gab_left_label*3)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*3)), (910, 430+(gab_left_draw*3)), 1)
-        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (630, 360+(gab_left_value*3)), self.GREEN, False)
+        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*3)), self.GREEN, align="right")
 
-        self.draw_text("Diff", self.font_header, (50, 370+(gab_left_label*4)))
+        self.draw_text("OK", self.font_header, (50, 370+(gab_left_label*4)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*4)), (910, 430+(gab_left_draw*4)), 1)
-        self.draw_text("00", self.font_percent, (630, 360+(gab_left_value*4)), self.GREEN, False)
+        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*4)), self.GREEN, align="right")
 
-        self.draw_text("OK", self.font_header, (50, 370+(gab_left_label*5)))
+        self.draw_text("NG", self.font_header, (50, 370+(gab_left_label*5)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*5)), (910, 430+(gab_left_draw*5)), 1)
-        self.draw_text("00", self.font_percent, (630, 360+(gab_left_value*5)), self.GREEN, False)
+        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*5)), self.GREEN, align="right")
 
-        self.draw_text("NG", self.font_header, (50, 370+(gab_left_label*6)))
+        self.draw_text("Man", self.font_header, (50, 370+(gab_left_label*6)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*6)), (910, 430+(gab_left_draw*6)), 1)
-        self.draw_text("00", self.font_percent, (630, 360+(gab_left_value*6)), self.GREEN, False)
+        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (910, 360+(gab_left_value*6)), self.GREEN, align="right")
 
         self.draw_text("spare", self.font_header, (50, 370+(gab_left_label*7)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*7)), (910, 430+(gab_left_draw*7)), 1)
-        self.draw_text("00", self.font_percent, (630, 360+(gab_left_value*7)), self.GREEN, False)
+        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*7)), self.GREEN, align="right")
 
         # Right Panel
-        gap_right_label =   40
+        gap_right_label =   45
         gap_right_value =   80
         # gap_right_
         px_right_x  =   995
         px_right_y  =   380
         self.draw_box((975, 350, 915, 730))
-        self.draw_text("06:00", self.font_label, (px_right_x, px_right_y))
-        self.draw_text("07:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*1)))
-        self.draw_text("08:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*2)))
-        self.draw_text("09:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*3)))
-        self.draw_text("10:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*4)))
-        self.draw_text("11:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*5)))
-        self.draw_text("13:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*6)))
-        self.draw_text("14:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*7)))
-        self.draw_text("15:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*8)))
-        self.draw_text("16:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*9)))
-        self.draw_text("17:30", self.font_label, (px_right_x, px_right_y+(gap_right_label*10)))
-        self.draw_text("18:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*11)))
-        self.draw_text("19:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*12)))
-        self.draw_text("20:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*13)))
-        self.draw_text("21:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*14)))
-        self.draw_text("22:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*15)))
-        self.draw_text("23:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*16)))
+        self.draw_text("08:00", self.font_label, (px_right_x, px_right_y))
+        self.draw_text("09:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*1)))
+        self.draw_text("10:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*2)))
+        self.draw_text("11:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*3)))
+        self.draw_text("12:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*4)))
+        self.draw_text("13:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*5)))
+        self.draw_text("14:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*6)))
+        self.draw_text("15:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*7)))
+        self.draw_text("16:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*8)))
+        self.draw_text("17:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*9)))
+        self.draw_text("18:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*10)))
+        self.draw_text("19:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*11)))
+        self.draw_text("20:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*12)))
+        self.draw_text("21:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*13)))
+        self.draw_text("22:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*14)))
+        # self.draw_text("23:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*15)))
+        # self.draw_text("23:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*16)))
 
-        # pygame.draw.line(self.screen, self.GREY, (995, 430), (1855, 430), 1)
-        # self.draw_text("00", self.font_percent, (1175, 360), self.GREEN, False)
+        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y), self.GREEN, align="right")
+        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*1)), self.GREEN, align="right")
+        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*2)), self.GREEN, align="right")
+        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*3)), self.GREEN, align="right")
+        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*4)), self.GREEN, align="right")
         # self.draw_text("00.00%", self.font_percent, (1575, 360), self.GREEN, False)
+
+        self.draw_text("00.00 %", self.font_label, (1550, px_right_y), self.GREEN, align="right")
+        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*1)), self.GREEN, align="right")
+        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*2)), self.GREEN, align="right")
+        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*3)), self.GREEN, align="right")
+        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*4)), self.GREEN, align="right")
+
     def run(self):
         try:
             while True:
