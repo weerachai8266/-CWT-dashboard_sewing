@@ -213,6 +213,24 @@ class DatabaseManager:
             print(f"Error fetching output count: {e}")
             return "00"
 
+    def get_hourly_output(self):
+        sql = """
+            SELECT HOUR(created_at) AS hr, COUNT(*) AS pcs
+            FROM sewing_3rd
+            WHERE DATE(created_at) = CURDATE()
+            GROUP BY hr
+            ORDER BY hr
+        """
+        try:
+            self.cursor.execute(sql)
+            results = self.cursor.fetchall()
+            # แปลงเป็น dict: {hour: count}
+            output = {int(row[0]): int(row[1]) for row in results}
+            return output
+        except Exception as e:
+            print(f"Error fetching hourly output: {e}")
+            return {}   
+
     def close(self):
         try:
             if hasattr(self, 'cursor') and self.cursor:
@@ -243,11 +261,12 @@ class Dashboard:
         self.man_plan = self.db_manager.get_man_plan()
         self.man_act = self.db_manager.get_man_act()
         self.output_value = self.db_manager.get_output_count()
+        self.hourly_output = {}
 
     def setup_fonts(self):
         self.font_header = pygame.font.SysFont('Arial', 50, bold=True)
         self.font_label = pygame.font.SysFont('Arial', 40, bold=True)
-        self.font_percent = pygame.font.SysFont('Arial', 80, bold=True)
+        self.font_percent = pygame.font.SysFont('Arial', 60, bold=True)
         self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
         self.font_big = pygame.font.SysFont('Consolas', 100, bold=True)
         self.font_TH = pygame.font.SysFont('FreeSerif', 80, bold=True) # TH
@@ -256,8 +275,18 @@ class Dashboard:
         self.BLACK = (0, 0, 0)
         self.WHITE = (255, 255, 255)
         self.GREEN = (0, 175, 0)
-        self.GREY = (128, 128, 128)
+        self.ORANGE = (255, 140, 0)
         self.RED = (175, 0, 0)
+        self.GREY = (128, 128, 128)
+
+    def get_threshold_color(self, value, green=90, orange=60):
+    # """คืนค่าสีตาม threshold (ค่า ≥ green=เขียว, ≥ orange=ส้ม, ต่ำกว่า=แดง)"""
+        if value >= green:
+            return self.GREEN
+        elif value >= orange:
+            return self.ORANGE
+        else:
+            return self.RED
 
     def draw_box(self, rect, fill_color=None, border_color=None, border=3, radius=10):
         if fill_color is None: fill_color = self.BLACK
@@ -321,76 +350,115 @@ class Dashboard:
         gab_left_label  =   85
         gab_left_draw   =   85
         gab_left_value  =   85
-        self.draw_box((30, 350, 915, 730))
-        self.draw_text("Efficiency", self.font_header, (50, 370))
-        pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
-        self.draw_text(f"{self.eff}%", self.font_percent, (910, 360), self.GREEN, align="right")
+        self.draw_box((30, 350, 915, 720))
 
-        self.draw_text("Output", self.font_header, (50, 370+(gab_left_label*1)))
+        eff_per_hour = []
+        target = int(self.target_value) if str(self.target_value).isdigit() and int(self.target_value) > 0 else 0
+
+        for i in range(15):  # 8:00 ถึง 20:00
+            hour = 8 + i
+            pcs = self.hourly_output.get(hour, None)
+            if pcs is not None and target > 0:
+                percent = (pcs / target) * 100
+                percent = max(0, percent)  # ไม่ให้ติดลบ
+                eff_per_hour.append(percent)
+
+        # Efficiency (เฉลี่ยเฉพาะชั่วโมงที่มีข้อมูล)
+        if eff_per_hour:
+            efficiency = sum(eff_per_hour) / len(eff_per_hour)
+        else:
+            efficiency = 0.0
+
+        self.efficiency = efficiency
+        self.draw_text("OA %", self.font_header, (50, 370))
+        pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
+        eff_color = self.get_threshold_color(self.efficiency)
+        self.draw_text(f"{self.efficiency:5.2f}", self.font_percent, (910, 360), eff_color, align="right")
+
+        self.draw_text("Output (Pcs)", self.font_header, (50, 370+(gab_left_label*1)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*1)), (910, 430+(gab_left_draw*1)), 1)
         self.draw_text(self.output_value, self.font_percent, (910, 360+(gab_left_value*1)), self.GREEN, align="right")
 
-        self.draw_text("Target / hr", self.font_header, (50, 370+(gab_left_label*2)))
+        self.draw_text("Target / Hr (Pcs)", self.font_header, (50, 370+(gab_left_label*2)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*2)), (910, 430+(gab_left_draw*2)), 1)
         self.draw_text(self.target_value, self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
 
-        self.draw_text("Diff", self.font_header, (50, 370+(gab_left_label*3)))
+        self.draw_text("Diff (Pcs)", self.font_header, (50, 370+(gab_left_label*3)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*3)), (910, 430+(gab_left_draw*3)), 1)
-        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*3)), self.GREEN, align="right")
+        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*3)), self.RED, align="right")
 
-        self.draw_text("OK", self.font_header, (50, 370+(gab_left_label*4)))
+        self.draw_text("NG (Pcs)", self.font_header, (50, 370+(gab_left_label*4)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*4)), (910, 430+(gab_left_draw*4)), 1)
-        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*4)), self.GREEN, align="right")
+        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*4)), self.RED, align="right")
 
-        self.draw_text("NG", self.font_header, (50, 370+(gab_left_label*5)))
+        self.draw_text("Productivity Plan", self.font_header, (50, 370+(gab_left_label*5)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*5)), (910, 430+(gab_left_draw*5)), 1)
-        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*5)), self.GREEN, align="right")
+        self.draw_text("0.0", self.font_percent, (910, 360+(gab_left_value*5)), self.GREEN, align="right")
 
-        self.draw_text("Man", self.font_header, (50, 370+(gab_left_label*6)))
+        self.draw_text("Productivity Act", self.font_header, (50, 370+(gab_left_label*6)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*6)), (910, 430+(gab_left_draw*6)), 1)
-        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (910, 360+(gab_left_value*6)), self.GREEN, align="right")
+        self.draw_text("0.0", self.font_percent, (910, 360+(gab_left_value*6)), self.GREEN, align="right")
 
-        self.draw_text("spare", self.font_header, (50, 370+(gab_left_label*7)))
+        self.draw_text("Man (Act / Plan)", self.font_header, (50, 370+(gab_left_label*7)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*7)), (910, 430+(gab_left_draw*7)), 1)
-        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*7)), self.GREEN, align="right")
+        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (910, 360+(gab_left_value*7)), self.GREEN, align="right")
 
         # Right Panel
-        gap_right_label =   45
+        gap_right_label =   47
         gap_right_value =   80
-        # gap_right_
         px_right_x  =   995
-        px_right_y  =   380
-        self.draw_box((975, 350, 915, 730))
-        self.draw_text("08:00", self.font_label, (px_right_x, px_right_y))
-        self.draw_text("09:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*1)))
-        self.draw_text("10:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*2)))
-        self.draw_text("11:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*3)))
-        self.draw_text("12:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*4)))
-        self.draw_text("13:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*5)))
-        self.draw_text("14:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*6)))
-        self.draw_text("15:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*7)))
-        self.draw_text("16:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*8)))
-        self.draw_text("17:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*9)))
-        self.draw_text("18:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*10)))
-        self.draw_text("19:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*11)))
-        self.draw_text("20:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*12)))
-        self.draw_text("21:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*13)))
-        self.draw_text("22:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*14)))
-        # self.draw_text("23:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*15)))
-        # self.draw_text("23:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*16)))
+        px_right_y  =   362
 
-        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y), self.GREEN, align="right")
-        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*1)), self.GREEN, align="right")
-        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*2)), self.GREEN, align="right")
-        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*3)), self.GREEN, align="right")
-        self.draw_text("00" + " Pcs", self.font_label, (1300, px_right_y+(gap_right_label*4)), self.GREEN, align="right")
-        # self.draw_text("00.00%", self.font_percent, (1575, 360), self.GREEN, False)
+        bar_x = 1600               # ตำแหน่ง X bar
+        bar_height = 30            # ความสูง bar
+        bar_max_width = 200        # ความกว้าง bar 100%
+        bar_y_start = px_right_y
 
-        self.draw_text("00.00 %", self.font_label, (1550, px_right_y), self.GREEN, align="right")
-        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*1)), self.GREEN, align="right")
-        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*2)), self.GREEN, align="right")
-        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*3)), self.GREEN, align="right")
-        self.draw_text("00.00 %", self.font_label, (1550, px_right_y+(gap_right_label*4)), self.GREEN, align="right")
+        self.draw_box((975, 350, 915, 720))
+        # self.draw_text("08:00", self.font_label, (px_right_x, px_right_y))
+        # self.draw_text("09:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*1)))
+        # self.draw_text("10:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*2)))
+        # self.draw_text("11:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*3)))
+        # self.draw_text("12:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*4)))
+        # self.draw_text("13:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*5)))
+        # self.draw_text("14:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*6)))
+        # self.draw_text("15:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*7)))
+        # self.draw_text("16:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*8)))
+        # self.draw_text("17:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*9)))
+        # self.draw_text("18:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*10)))
+        # self.draw_text("19:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*11)))
+        # self.draw_text("20:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*12)))
+        # self.draw_text("21:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*13)))
+        # self.draw_text("22:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*14)))
+
+
+        for i in range(15):  # 8:00 ถึง 22:00
+            hour = 8 + i
+            pcs = self.hourly_output.get(hour, None)
+
+            if pcs is not None:
+                target = int(self.target_value) if str(self.target_value).isdigit() else 0
+                percent = (pcs / target) * 100 if target > 0 else 0
+                pcs_per_hour = f"{pcs} Pcs"
+                efficiency_per_hour = f"{percent:5.2f} %"
+
+                percent_color = self.get_threshold_color(percent)  # ใช้เมธอดกำหนดสี
+                bar_color = percent_color
+                bar_width = int(min(percent, 100) / 100 * bar_max_width)
+            else:
+                pcs_per_hour = ""
+                efficiency_per_hour = ""
+                percent_color = self.BLACK   # กำหนดค่า default
+                bar_color = self.GREY
+                bar_width = 0
+
+            y = bar_y_start + gap_right_label * i
+
+            self.draw_text(f"{i+8:02d}:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*i)))  #   Time
+            self.draw_text(pcs_per_hour, self.font_label, (1300, y), percent_color, align="right")              #   Pcs
+            self.draw_text(efficiency_per_hour, self.font_label, (1550, y), percent_color, align="right")          #   Percent
+            pygame.draw.rect(self.screen, bar_color, (bar_x, y, bar_width, bar_height))                     #   bar_inner
+            pygame.draw.rect(self.screen, self.GREY, (bar_x, y, bar_max_width, bar_height), 2)              #   bar_outter
 
     def run(self):
         try:
@@ -400,13 +468,14 @@ class Dashboard:
                         print("กำลังปิดโปรแกรม...")
                         self.cleanup()
                         pygame.quit()
-                        os._exit(0)  # ใช้ os._exit เพื่อปิดโปรแกรมทันที
+                        os._exit(0)
                     elif event.type == self.UPDATE_EVENT:
                         self.target_value = self.db_manager.get_target_from_cap()
                         self.man_plan = self.db_manager.get_man_plan()
                         self.man_act = self.db_manager.get_man_act()
                         self.output_value = self.db_manager.get_output_count()
                         self.eff = round(float(self.output_value) / float(self.target_value) * 100, 2) if float(self.target_value) != 0 else 0.00
+                        self.hourly_output = self.db_manager.get_hourly_output()
 
                 barcode = self.scanner.get_barcode()
                 if barcode:
