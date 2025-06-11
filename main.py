@@ -229,7 +229,28 @@ class DatabaseManager:
             return output
         except Exception as e:
             print(f"Error fetching hourly output: {e}")
-            return {}   
+            return {}
+            
+    def get_hourly_output_detailed(self, for_date=None):
+        """
+        Return dict: {hour: count} for output, and {hour: [minute list]} for production minutes
+        """
+        if not for_date:
+            for_date = datetime.now().strftime("%Y-%m-%d")
+        sql = """
+            SELECT HOUR(created_at), MINUTE(created_at)
+            FROM sewing_3rd
+            WHERE DATE(created_at) = %s
+        """
+        self.cursor.execute(sql, (for_date,))
+        results = self.cursor.fetchall()
+        hourly_minutes = {}
+        for hr, mn in results:
+            dt = datetime(2000,1,1,hr,mn)
+            if not is_break(dt):
+                hourly_minutes.setdefault(hr, set()).add(mn)
+        hourly_output = {hr: len(mns) for hr, mns in hourly_minutes.items()}
+        return hourly_output
 
     def close(self):
         try:
@@ -240,6 +261,31 @@ class DatabaseManager:
             print("✅ ปิดการเชื่อมต่อฐานข้อมูล")
         except Exception as e:
             print(f"❌ ปิดการเชื่อมต่อฐานข้อมูลผิดพลาด: {e}")
+
+# ---- Break periods ----
+BREAK_PERIODS = [
+    (time(10, 0), time(10, 10)),
+    (time(12, 10), time(13, 10)),
+    (time(15, 0), time(15, 10)),
+    (time(17, 0), time(17, 30)),
+]
+
+def is_break(dt):
+    t = dt.time() if hasattr(dt, "time") else dt
+    for start, end in BREAK_PERIODS:
+        if start <= t < end:
+            return True
+    return False
+
+def working_minutes_in_hour(hour):
+    count = 0
+    current = datetime(2000,1,1, hour,0)
+    end = datetime(2000,1,1, hour+1,0)
+    while current < end:
+        if not is_break(current):
+            count += 1
+        current += timedelta(minutes=1)
+    return count
 
 class Dashboard:
     def __init__(self, db_manager, scanner):
@@ -261,7 +307,8 @@ class Dashboard:
         self.man_plan = self.db_manager.get_man_plan()
         self.man_act = self.db_manager.get_man_act()
         self.output_value = self.db_manager.get_output_count()
-        self.hourly_output = {}
+        self.hourly_output = self.db_manager.get_hourly_output_detailed()
+        self.target_value = int(self.db_manager.get_target_from_cap())
 
     def setup_fonts(self):
         self.font_header = pygame.font.SysFont('Arial', 50, bold=True)
@@ -280,7 +327,6 @@ class Dashboard:
         self.GREY = (128, 128, 128)
 
     def get_threshold_color(self, value, green=90, orange=60):
-    # """คืนค่าสีตาม threshold (ค่า ≥ green=เขียว, ≥ orange=ส้ม, ต่ำกว่า=แดง)"""
         if value >= green:
             return self.GREEN
         elif value >= orange:
@@ -324,31 +370,6 @@ class Dashboard:
                 self.error_message = "ไม่บันทึก กรุณาสแกนใหม่ ("+ barcode +")"
                 # self.error_message = barcode
             self.show_error = True
-        
-        # BREAK_PERIODS = [
-        #     (time(10, 0), time(10, 10)),
-        #     (time(12, 10), time(13, 10)),
-        #     (time(15, 0), time(15, 10)),
-        #     (time(17, 0), time(17, 30)),
-        # ]
-        # def is_break(t):
-        #     for start, end in BREAK_PERIODS:
-        #         if start <= t < end:
-        #             return True
-        #     return False
-
-        # def count_working_minutes():
-        #     working_minutes = 0
-        #     # เริ่มต้นที่ 8:00
-        #     current = datetime(2000, 1, 1, 8, 0)  # ปี/เดือน/วันอะไรก็ได้
-        #     end = datetime(2000, 1, 1, 22, 0)
-        #     while current < end:
-        #         if not is_break(current.time()):
-        #             working_minutes += 1
-        #         current += timedelta(minutes=1)
-        #     return working_minutes
-
-        # print(count_working_minutes())  # จำนวน working minutes ใน 1 วัน
 
     def draw_dashboard(self):
         self.screen.fill(self.BLACK)
@@ -375,8 +396,9 @@ class Dashboard:
         gab_left_label  =   85
         gab_left_draw   =   85
         gab_left_value  =   85
-        self.draw_box((30, 350, 915, 720))
+        self.draw_box((30, 350, 915, 720))       
 
+        # Efficiency Calculation
         eff_per_hour = []
         target = int(self.target_value) if str(self.target_value).isdigit() and int(self.target_value) > 0 else 0
         working_hours = [hour for hour in range(8, 23) if self.hourly_output.get(hour) is not None]  # 8 ถึง 22
@@ -407,6 +429,7 @@ class Dashboard:
             efficiency = sum(eff_per_hour) / len(eff_per_hour)
         else:
             efficiency = 0.0
+
         self.efficiency = efficiency
         self.draw_text("OA %", self.font_header, (50, 370))
         pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
@@ -430,7 +453,7 @@ class Dashboard:
             diff_color = self.ORANGE
         self.draw_text("Diff (Pcs)", self.font_header, (50, 370+(gab_left_label*3)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*3)), (910, 430+(gab_left_draw*3)), 1)
-        self.draw_text(f"{diff:+d}", self.font_percent, (910, 360+(gab_left_value*3)), diff_color, align="right")
+        self.draw_text(f"{diff}", self.font_percent, (910, 360+(gab_left_value*3)), diff_color, align="right")
 
         self.draw_text("NG (Pcs)", self.font_header, (50, 370+(gab_left_label*4)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*4)), (910, 430+(gab_left_draw*4)), 1)
