@@ -326,7 +326,7 @@ class Dashboard:
         self.RED = (175, 0, 0)
         self.GREY = (128, 128, 128)
 
-    def get_threshold_color(self, value, green=90, orange=60):
+    def get_threshold_color(self, value, green=90, orange=80):
         if value >= green:
             return self.GREEN
         elif value >= orange:
@@ -399,11 +399,19 @@ class Dashboard:
         self.draw_box((30, 350, 915, 720))       
 
         # Efficiency Calculation
+        # eff_per_hour = []
+        # target = int(self.target_value) if str(self.target_value).isdigit() and int(self.target_value) > 0 else 0
+        # working_hours = [hour for hour in range(8, 23) if self.hourly_output.get(hour) is not None]  # 8 ถึง 22
+        # num_hours = len(working_hours)
+        # diff = int(self.output_value) - (num_hours * target)
+
+        # Efficiency Calculation Break
         eff_per_hour = []
-        target = int(self.target_value) if str(self.target_value).isdigit() and int(self.target_value) > 0 else 0
-        working_hours = [hour for hour in range(8, 23) if self.hourly_output.get(hour) is not None]  # 8 ถึง 22
+        target = int(self.target_value) if str(self.target_value).isdigit() else 0
+        working_hours = [hour for hour in range(8, 22)]
         num_hours = len(working_hours)
         diff = int(self.output_value) - (num_hours * target)
+
 
         # Productivity Plan = Target Output / Man Plan
         if int(self.man_plan) > 0:
@@ -416,12 +424,20 @@ class Dashboard:
         else:
             productivity_act = 0.0
                 
-        for i in range(15):  # 8:00 ถึง 20:00
-            hour = 8 + i
-            pcs = self.hourly_output.get(hour, None)
-            if pcs is not None and target > 0:
-                percent = (pcs / target) * 100
-                percent = max(0, percent)  # ไม่ให้ติดลบ
+        # for i in range(15):  # 8:00 ถึง 20:00
+        #     hour = 8 + i
+        #     pcs = self.hourly_output.get(hour, None)
+        #     if pcs is not None and target > 0:
+        #         percent = (pcs / target) * 100
+        #         percent = max(0, percent)  # ไม่ให้ติดลบ
+        #         eff_per_hour.append(percent)
+
+        for hour in working_hours:
+            pcs = self.hourly_output.get(hour, 0)
+            work_min = working_minutes_in_hour(hour)
+            if pcs is not None and work_min > 0:
+                percent = (pcs / work_min) * 100
+                percent = max(0, percent)
                 eff_per_hour.append(percent)
 
         # Efficiency (เฉลี่ยเฉพาะชั่วโมงที่มีข้อมูล)
@@ -442,7 +458,8 @@ class Dashboard:
 
         self.draw_text("Target / Hr (Pcs)", self.font_header, (50, 370+(gab_left_label*2)))
         pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*2)), (910, 430+(gab_left_draw*2)), 1)
-        self.draw_text(self.target_value, self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
+        # self.draw_text(self.target_value, self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
+        self.draw_text(str(target), self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
 
         # diff color
         if diff < 0:
@@ -477,29 +494,36 @@ class Dashboard:
         px_right_x  =   995
         px_right_y  =   362
 
-        bar_x = 1600               # ตำแหน่ง X bar
+        bar_x = 1650               # ตำแหน่ง X bar
         bar_height = 30            # ความสูง bar
         bar_max_width = 200        # ความกว้าง bar 100%
         bar_y_start = px_right_y
 
         self.draw_box((975, 350, 915, 720))
 
-        for i in range(15):  # 8:00 ถึง 22:00
+        # for i in range(15):  # 8:00 ถึง 22:00
+        for i, hour in enumerate(range(8, 23)):
             hour = 8 + i
-            pcs = self.hourly_output.get(hour, None)
+            pcs = self.hourly_output.get(hour, 0)
+            work_min = working_minutes_in_hour(hour)                                     #   hour
+            target = int(self.target_value) if str(self.target_value).isdigit() else 0
+            target_hr = int(target * (work_min / 60)) if work_min else 0                 #   target / hr
+            diff_hr = pcs - target_hr                                                    #   diff / hr
 
-            if pcs is not None:
+            # if pcs is not 0:
+            if pcs != 0:
                 target = int(self.target_value) if str(self.target_value).isdigit() else 0
-                percent = (pcs / target) * 100 if target > 0 else 0
-                pcs_per_hour = f"{pcs} Pcs"
-                efficiency_per_hour = f"{percent:5.2f} %"
+                percent = (pcs / target_hr) * 100 if target_hr > 0 else 0
+                pcs_per_hour = f"{pcs} / {target_hr} Pcs"
+                oa_percent = f"{percent:5.2f} %"
 
                 percent_color = self.get_threshold_color(percent)  # ใช้เมธอดกำหนดสี
                 bar_color = percent_color
                 bar_width = int(min(percent, 100) / 100 * bar_max_width)
             else:
                 pcs_per_hour = ""
-                efficiency_per_hour = ""
+                # efficiency_per_hour = ""
+                oa_percent = ""
                 percent_color = self.BLACK   # กำหนดค่า default
                 bar_color = self.GREY
                 bar_width = 0
@@ -507,8 +531,9 @@ class Dashboard:
             y = bar_y_start + gap_right_label * i
 
             self.draw_text(f"{i+8:02d}:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*i)))  #   Time
-            self.draw_text(pcs_per_hour, self.font_label, (1300, y), percent_color, align="right")          #   Pcs
-            self.draw_text(efficiency_per_hour, self.font_label, (1550, y), percent_color, align="right")   #   Percent
+            self.draw_text(pcs_per_hour, self.font_label, (1400, y), percent_color, align="right")          #   Pcs
+            self.draw_text(oa_percent, self.font_label, (1620, y), percent_color, align="right")            #   Percent
+            
             pygame.draw.rect(self.screen, bar_color, (bar_x, y, bar_width, bar_height))                     #   bar_inner
             pygame.draw.rect(self.screen, self.GREY, (bar_x, y, bar_max_width, bar_height), 2)              #   bar_outter
 
