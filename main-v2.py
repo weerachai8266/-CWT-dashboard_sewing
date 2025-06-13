@@ -40,9 +40,9 @@ from datetime import time, timedelta, datetime
 from evdev import InputDevice, categorize, ecodes, list_devices
 
 class Scanner:
-    def __init__(self):
+    def __init__(self, device_index=None):
         print("\nกำลังค้นหาอุปกรณ์...")
-        self.device = self.find_scanner()
+        self.device = self.find_scanner(device_index)
         if not self.device:
             print("\n❌ ไม่พบอุปกรณ์ที่ใช้งานได้")
             print("โปรดตรวจสอบ:")
@@ -71,7 +71,7 @@ class Scanner:
         self.thread = threading.Thread(target=self._barcode_loop, daemon=True)
         self.thread.start()
 
-    def find_scanner(self):
+    def find_scanner(self, device_index=None):
         devices = [InputDevice(path) for path in list_devices()]
         print("\nรายการอุปกรณ์ที่พบทั้งหมด:")
         print("-" * 50)
@@ -102,6 +102,15 @@ class Scanner:
         if not available_devices:
             print("❌ ไม่พบ Scanner หรือ อุปกรณ์ที่ใช้งานได้")
             return None
+
+        if device_index is not None:
+            if 0 <= device_index < len(available_devices):
+                selected_device = available_devices[device_index]
+                print(f"✅ เลือกใช้: {selected_device.path} ({selected_device.name})")
+                return selected_device
+            else:
+                print(f"❌ ไม่พบอุปกรณ์ index={device_index}")
+                return None
 
         if len(available_devices) == 1:
             selected_device = available_devices[0]
@@ -203,6 +212,17 @@ class DatabaseManager:
             print(f"✅ บันทึกข้อมูล: {item_code}")
         except pymysql.err.IntegrityError as e:
             print(f"❌ ไม่สามารถบันทึก: {item_code} (อาจซ้ำ)")
+
+    def insert_qc(self, item_code):
+        item_code = item_code.upper()
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # sql = "INSERT INTO qc_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
+        # try:
+        #     self.cursor.execute(sql, (item_code, now))
+        #     self.db.commit()
+        #     print(f"✅ QC บันทึกข้อมูล: {item_code}")
+        # except pymysql.err.IntegrityError as e:
+        #     print(f"❌ QC ไม่สามารถบันทึก: {item_code} (อาจซ้ำ)")
 
     def get_target_from_cap(self):
         try:
@@ -319,9 +339,10 @@ def working_minutes_in_hour(hour):
     return count
 
 class Dashboard:
-    def __init__(self, db_manager, scanner):
+    def __init__(self, db_manager, scanner1, scanner2):
         self.db_manager = db_manager
-        self.scanner = scanner
+        self.scanner1 = scanner1
+        self.scanner2 = scanner2
         pygame.init()
         self.UPDATE_EVENT = pygame.USEREVENT + 1
         pygame.time.set_timer(self.UPDATE_EVENT, 1000)
@@ -330,9 +351,12 @@ class Dashboard:
         self.width, self.height = self.screen.get_size()
         self.setup_fonts()
         self.setup_colors()
-        self.last_ok_barcode = ""
+        self.last_pd_barcode = ""
         self.error_message = ""
         self.show_error = False
+        self.last_qc_barcode = ""
+        self.qc_error_message = ""
+        self.qc_show_error = False
 
         self.target_value = self.db_manager.get_target_from_cap()
         self.man_plan = self.db_manager.get_man_plan()
@@ -346,8 +370,9 @@ class Dashboard:
         self.font_label = pygame.font.SysFont('Arial', 40, bold=True)
         self.font_percent = pygame.font.SysFont('Arial', 60, bold=True)
         self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
+        self.font_mini = pygame.font.SysFont('Arial', 15, bold=True)
         self.font_big = pygame.font.SysFont('Consolas', 150, bold=True)
-        self.font_TH = pygame.font.SysFont('FreeSerif', 80, bold=True) # TH
+        self.font_TH = pygame.font.SysFont('FreeSerif', 60, bold=True) # TH
 
     def setup_colors(self):
         self.BLACK = (0, 0, 0)
@@ -387,20 +412,26 @@ class Dashboard:
 
         self.screen.blit(surface, rect)
 
-    def process_ok_scan(self, barcode):
+    def process_pd_scan(self, barcode):
         if 12 < len(barcode) <= 17:
-            self.last_ok_barcode = barcode
+            self.last_pd_barcode = barcode
             self.db_manager.insert_ok(barcode)
             self.show_error = False
             self.error_message = ""
         else:
-            if len(barcode) <= 15:
-                self.error_message = "ไม่บันทึก กรุณาสแกนใหม่ (" + barcode +")"
-                # self.error_message = barcode
-            else:
-                self.error_message = "ไม่บันทึก กรุณาสแกนใหม่ ("+ barcode +")"
-                # self.error_message = barcode
+            self.error_message = "ไม่บันทึก กรุณาสแกนใหม่ (" + barcode +")"
             self.show_error = True
+
+    # ---  process_qc_scan ---
+    def process_qc_scan(self, barcode):
+        if barcode.startswith("NI"):
+            self.last_qc_barcode = barcode
+            self.db_manager.insert_qc(barcode)
+            self.qc_show_error = False
+            self.qc_error_message = ""
+        else:
+            self.qc_error_message = "ไม่บันทึก กรุณาสแกนใหม่ (" + barcode +")"
+            self.qc_show_error = True
 
     def draw_dashboard(self):
         self.screen.fill(self.BLACK)
@@ -415,13 +446,22 @@ class Dashboard:
         self.draw_text(" DATE : " + now.strftime("%d/%m/%Y"), self.font_small, (1380, 35))
         self.draw_text(" TIME  : " + now.strftime("%H:%M:%S"), self.font_small, (1380, 75))
 
-        # Barcode Display
-        self.draw_box((30, 150, self.width - 60, 170))
-        self.draw_text("Part", self.font_label, (50, 160))
+        # Barcode Display Production
+        self.draw_box((30, 140, 915, 100))
+        self.draw_text("Production", self.font_mini, (50, 150))
         if self.show_error:
-            self.draw_text(self.error_message, self.font_TH, (150, 170), self.RED)
+            self.draw_text("Error: " + self.error_message, self.font_TH, (50, 155), self.RED)
         else:
-            self.draw_text(self.last_ok_barcode, self.font_big, (150, 170))
+            self.draw_text("Model: " + self.last_pd_barcode, self.font_percent, (50, 165))
+
+        # Barcode Display QC
+        self.draw_box((975, 140, 915, 100))
+        self.draw_text("QC", self.font_mini, (995, 150))
+        if self.show_error:
+            self.draw_text("Error: " + self.error_message, self.font_TH, (995, 155), self.RED)
+        else:
+            self.draw_text("Part: " + self.last_pd_barcode, self.font_percent, (995, 165))
+
 
         # Right Panel
         gap_right_label =   47
@@ -485,9 +525,6 @@ class Dashboard:
         else:
             efficiency = 0.0
 
-        # print(list(self.hourly_output.items()))
-        # print(eff_per_hour)
-        # print(efficiency)
         self.efficiency = efficiency
         eff_color = self.get_threshold_color(self.efficiency)
         self.draw_text("OA %", self.font_header, (50, 370))
@@ -571,20 +608,34 @@ class Dashboard:
                         self.eff = round(float(self.output_value) / float(self.target_value) * 100, 2) if float(self.target_value) != 0 else 0.00
                         self.hourly_output = self.db_manager.get_hourly_output()
 
-                barcode = self.scanner.get_barcode()
-                if barcode:
-                    self.process_ok_scan(barcode)
+                # --- รับบาร์โค้ดจาก scanner1 (หรือ scanner2) ---
+                barcode1 = self.scanner1.get_barcode()
+                barcode2 = self.scanner2.get_barcode()
+
+                # จัดลำดับการประมวลผลทั้งสองเครื่อง
+                for barcode in (barcode1, barcode2):
+                    if barcode:
+                        if barcode.startswith("Model"):
+                            self.process_ok_scan(barcode)
+                        elif barcode.startswith("NI"):
+                            self.process_qc_scan(barcode)
+                        else:
+                            # อาจขึ้น error ที่ฝั่ง OK Scan
+                            self.error_message = "ไม่บันทึก กรุณาสแกนใหม่ (" + barcode +")"
+                            self.show_error = True
 
                 self.draw_dashboard()
                 pygame.display.flip()
         except Exception as e:
             print(f"Dashboard error: {e}")
-            os._exit(1)  # ปิดโปรแกรมเมื่อเกิดข้อผิดพลาด
+            os._exit(1)
 
     def cleanup(self):
         try:
-            if hasattr(self, 'scanner'):
-                self.scanner.cleanup()
+            if hasattr(self, 'scanner1'):
+                self.scanner1.cleanup()
+            if hasattr(self, 'scanner2'):
+                self.scanner2.cleanup()
         except Exception as e:
             print(f"Dashboard cleanup error: {e}")
 
@@ -596,8 +647,9 @@ if __name__ == '__main__':
     try:
         print("กำลังเริ่มต้นโปรแกรม...")
         db_manager = DatabaseManager()
-        scanner = Scanner()
-        dashboard = Dashboard(db_manager, scanner)
+        scanner1 = Scanner()
+        scanner2 = Scanner()
+        dashboard = Dashboard(db_manager, scanner1, scanner2)
         dashboard.run()
     except Exception as e:
         print(f"❌ โปรแกรมผิดพลาด: {e}")
@@ -609,7 +661,7 @@ if __name__ == '__main__':
                 db_manager.close()
             pygame.quit()
             print("กำลังปิดโปรแกรม...")
-            os._exit(0)  # ใช้ os._exit แทน sys.exit
+            os._exit(0)
         except Exception as e:
             print(f"❌ ปิดโปรแกรมผิดพลาด: {e}")
             os._exit(1)
