@@ -1,14 +1,19 @@
 # install packages 
-### อัพเดทระบบ
-~~~ echo "📦 กำลังอัพเดทระบบ..."
-sudo apt-get update
-sudo apt-get upgrade -y
-~~~
+### รายชื่อไลบรารีที่ต้องใช้
+    pymysql (pip)
+    evdev (apt และ pip)
+    pygame (apt)
+    python3, python3-pip, python3-dev (apt)
+    select, datetime, sys, os, threading, queue (built-in Python)
 
 ### ติดตั้ง Python และ pip
-~~~ echo "🐍 กำลังติดตั้ง Python และ pip..."
-sudo apt-get install -y python3 python3-pip python3-dev
-~~~
+### วิธีใช้
+
+บันทึกไฟล์นี้เป็น ~ check_and_install_libs.sh ~
+ให้สิทธิ์รัน:
+~~~chmod +x check_and_install_libs.sh~
+รัน:
+~./check_and_install_libs.sh~
 
 ### ติดตั้ง required packages
 ~~~ echo "🔧 กำลังติดตั้ง packages ที่จำเป็น..."
