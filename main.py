@@ -392,102 +392,6 @@ class Dashboard:
         else:
             self.draw_text(self.last_ok_barcode, self.font_big, (150, 170))
 
-        # Left Panel
-        gab_left_label  =   85
-        gab_left_draw   =   85
-        gab_left_value  =   85
-        self.draw_box((30, 350, 915, 720))       
-
-        # Efficiency Calculation
-        # eff_per_hour = []
-        # target = int(self.target_value) if str(self.target_value).isdigit() and int(self.target_value) > 0 else 0
-        # working_hours = [hour for hour in range(8, 23) if self.hourly_output.get(hour) is not None]  # 8 ถึง 22
-        # num_hours = len(working_hours)
-        # diff = int(self.output_value) - (num_hours * target)
-
-        # Efficiency Calculation Break
-        eff_per_hour = []
-        target = int(self.target_value) if str(self.target_value).isdigit() else 0
-        working_hours = [hour for hour in range(8, 22)]
-        num_hours = len(working_hours)
-        diff = int(self.output_value) - (num_hours * target)
-
-
-        # Productivity Plan = Target Output / Man Plan
-        if int(self.man_plan) > 0:
-            productivity_plan = int(self.target_value) / int(self.man_plan)
-        else:
-            productivity_plan = 0.0
-        # Productivity Act = Actual Output / Man Actual
-        if int(self.man_act) > 0:
-            productivity_act = int(self.output_value) / int(self.man_act) / num_hours
-        else:
-            productivity_act = 0.0
-                
-        # for i in range(15):  # 8:00 ถึง 20:00
-        #     hour = 8 + i
-        #     pcs = self.hourly_output.get(hour, None)
-        #     if pcs is not None and target > 0:
-        #         percent = (pcs / target) * 100
-        #         percent = max(0, percent)  # ไม่ให้ติดลบ
-        #         eff_per_hour.append(percent)
-
-        for hour in working_hours:
-            pcs = self.hourly_output.get(hour, 0)
-            work_min = working_minutes_in_hour(hour)
-            if pcs is not None and work_min > 0:
-                percent = (pcs / work_min) * 100
-                percent = max(0, percent)
-                eff_per_hour.append(percent)
-
-        # Efficiency (เฉลี่ยเฉพาะชั่วโมงที่มีข้อมูล)
-        if eff_per_hour:
-            efficiency = sum(eff_per_hour) / len(eff_per_hour)
-        else:
-            efficiency = 0.0
-
-        self.efficiency = efficiency
-        self.draw_text("OA %", self.font_header, (50, 370))
-        pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
-        eff_color = self.get_threshold_color(self.efficiency)
-        self.draw_text(f"{self.efficiency:5.2f}", self.font_percent, (910, 360), eff_color, align="right")
-
-        self.draw_text("Output (Pcs)", self.font_header, (50, 370+(gab_left_label*1)))
-        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*1)), (910, 430+(gab_left_draw*1)), 1)
-        self.draw_text(self.output_value, self.font_percent, (910, 360+(gab_left_value*1)), self.GREEN, align="right")
-
-        self.draw_text("Target / Hr (Pcs)", self.font_header, (50, 370+(gab_left_label*2)))
-        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*2)), (910, 430+(gab_left_draw*2)), 1)
-        # self.draw_text(self.target_value, self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
-        self.draw_text(str(target), self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
-
-        # diff color
-        if diff < 0:
-            diff_color = self.RED
-        elif diff == 0:
-            diff_color = self.GREEN
-        else:
-            diff_color = self.ORANGE
-        self.draw_text("Diff (Pcs)", self.font_header, (50, 370+(gab_left_label*3)))
-        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*3)), (910, 430+(gab_left_draw*3)), 1)
-        self.draw_text(f"{diff}", self.font_percent, (910, 360+(gab_left_value*3)), diff_color, align="right")
-
-        self.draw_text("NG (Pcs)", self.font_header, (50, 370+(gab_left_label*4)))
-        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*4)), (910, 430+(gab_left_draw*4)), 1)
-        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*4)), self.RED, align="right")
-
-        self.draw_text("Productivity Plan", self.font_header, (50, 370+(gab_left_label*5)))
-        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*5)), (910, 430+(gab_left_draw*5)), 1)
-        self.draw_text(f"{productivity_plan:.1f}", self.font_percent, (910, 360+(gab_left_value*5)), self.GREEN, align="right")
-
-        self.draw_text("Productivity Act", self.font_header, (50, 370+(gab_left_label*6)))
-        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*6)), (910, 430+(gab_left_draw*6)), 1)
-        self.draw_text(f"{productivity_act:.1f}", self.font_percent, (910, 360+(gab_left_value*6)), self.GREEN, align="right")
-
-        self.draw_text("Man (Act / Plan)", self.font_header, (50, 370+(gab_left_label*7)))
-        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*7)), (910, 430+(gab_left_draw*7)), 1)
-        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (910, 360+(gab_left_value*7)), self.GREEN, align="right")
-
         # Right Panel
         gap_right_label =   47
         gap_right_value =   80
@@ -501,7 +405,7 @@ class Dashboard:
 
         self.draw_box((975, 350, 915, 720))
 
-        # for i in range(15):  # 8:00 ถึง 22:00
+        eff_per_hour = []
         for i, hour in enumerate(range(8, 23)):
             hour = 8 + i
             pcs = self.hourly_output.get(hour, 0)
@@ -515,15 +419,16 @@ class Dashboard:
                 target = int(self.target_value) if str(self.target_value).isdigit() else 0
                 percent = (pcs / target_hr) * 100 if target_hr > 0 else 0
                 pcs_per_hour = f"{pcs} / {target_hr} Pcs"
-                oa_percent = f"{percent:5.2f} %"
-
+                oa_per_hour = f"{percent:5.2f} %"
+                eff_per_hour.append(percent)  # เก็บค่า OA % สำหรับคำนวณประสิทธิภาพรวม
+                
+                # กำหนดสีตามเกณฑ์
                 percent_color = self.get_threshold_color(percent)  # ใช้เมธอดกำหนดสี
                 bar_color = percent_color
                 bar_width = int(min(percent, 100) / 100 * bar_max_width)
             else:
                 pcs_per_hour = ""
-                # efficiency_per_hour = ""
-                oa_percent = ""
+                oa_per_hour = ""
                 percent_color = self.BLACK   # กำหนดค่า default
                 bar_color = self.GREY
                 bar_width = 0
@@ -532,10 +437,91 @@ class Dashboard:
 
             self.draw_text(f"{i+8:02d}:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*i)))  #   Time
             self.draw_text(pcs_per_hour, self.font_label, (1400, y), percent_color, align="right")          #   Pcs
-            self.draw_text(oa_percent, self.font_label, (1620, y), percent_color, align="right")            #   Percent
+            self.draw_text(oa_per_hour, self.font_label, (1620, y), percent_color, align="right")            #   Percent
             
             pygame.draw.rect(self.screen, bar_color, (bar_x, y, bar_width, bar_height))                     #   bar_inner
             pygame.draw.rect(self.screen, self.GREY, (bar_x, y, bar_max_width, bar_height), 2)              #   bar_outter
+
+        # Left Panel
+        gab_left_label  =   85
+        gab_left_draw   =   85
+        gab_left_value  =   85
+        self.draw_box((30, 350, 915, 720))   
+        
+        # Calculate overall efficiency
+        if eff_per_hour:
+            efficiency = sum(eff_per_hour) / len(eff_per_hour)
+        else:
+            efficiency = 0.0
+
+        # print(list(self.hourly_output.items()))
+        # print(eff_per_hour)
+        # print(efficiency)
+        self.efficiency = efficiency
+        eff_color = self.get_threshold_color(self.efficiency)
+        self.draw_text("OA %", self.font_header, (50, 370))
+        pygame.draw.line(self.screen, self.GREY, (50, 430), (910, 430), 1)
+        self.draw_text(f"{self.efficiency:5.2f}", self.font_percent, (910, 360), eff_color, align="right")
+
+        self.draw_text("Output (Pcs)", self.font_header, (50, 370+(gab_left_label*1)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*1)), (910, 430+(gab_left_draw*1)), 1)
+        self.draw_text(self.output_value, self.font_percent, (910, 360+(gab_left_value*1)), self.GREEN, align="right")
+
+        # target = int(self.target_value) if str(self.target_value).isdigit() else 0
+        self.draw_text("Target / Hr (Pcs)", self.font_header, (50, 370+(gab_left_label*2)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*2)), (910, 430+(gab_left_draw*2)), 1)
+        self.draw_text(self.target_value, self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
+        # self.draw_text(str(target), self.font_percent, (910, 360+(gab_left_value*2)), self.GREEN, align="right")
+
+        
+        diff_each_hour = []
+        for hour in self.hourly_output:
+            pcs = self.hourly_output.get(hour, 0)
+            work_min = working_minutes_in_hour(hour)
+            target = int(self.target_value) if str(self.target_value).isdigit() else 0
+            target_hr = int(target * (work_min / 60)) if work_min else 0
+            diff_hr = pcs - target_hr
+            diff_each_hour.append(diff_hr)
+
+        diff_total = sum(diff_each_hour)
+        # diff color
+        if diff_total < 0:
+            diff_color = self.RED
+        elif diff_total == 0:
+            diff_color = self.GREEN
+        else:
+            diff_color = self.ORANGE
+
+        self.draw_text("Diff (Pcs)", self.font_header, (50, 370+(gab_left_label*3)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*3)), (910, 430+(gab_left_draw*3)), 1)
+        self.draw_text(f"{diff_total}", self.font_percent, (910, 360+(gab_left_value*3)), diff_color, align="right")
+
+        self.draw_text("NG (Pcs)", self.font_header, (50, 370+(gab_left_label*4)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*4)), (910, 430+(gab_left_draw*4)), 1)
+        self.draw_text("00", self.font_percent, (910, 360+(gab_left_value*4)), self.RED, align="right")
+
+        # Productivity 
+        num_hours = len(self.hourly_output)  # จำนวนชั่วโมงที่มีการบันทึก
+        if int(self.man_plan) > 0:
+            productivity_plan = int(self.target_value) / int(self.man_plan)
+        else:
+            productivity_plan = 0.0
+        if int(self.man_act) > 0:
+            productivity_act = int(self.output_value) / int(self.man_act) / num_hours
+        else:
+            productivity_act = 0.0   
+
+        self.draw_text("Productivity Plan", self.font_header, (50, 370+(gab_left_label*5)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*5)), (910, 430+(gab_left_draw*5)), 1)
+        self.draw_text(f"{productivity_plan:.1f}", self.font_percent, (910, 360+(gab_left_value*5)), self.GREEN, align="right")
+
+        self.draw_text("Productivity Act", self.font_header, (50, 370+(gab_left_label*6)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*6)), (910, 430+(gab_left_draw*6)), 1)
+        self.draw_text(f"{productivity_act:.1f}", self.font_percent, (910, 360+(gab_left_value*6)), self.GREEN, align="right")
+
+        self.draw_text("Man (Act / Plan)", self.font_header, (50, 370+(gab_left_label*7)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left_draw*7)), (910, 430+(gab_left_draw*7)), 1)
+        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (910, 360+(gab_left_value*7)), self.GREEN, align="right")
 
     def run(self):
         try:
