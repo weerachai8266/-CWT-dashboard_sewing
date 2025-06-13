@@ -1,17 +1,18 @@
 # install packages 
 ### รายชื่อไลบรารีที่ต้องใช้
-    pymysql (pip)
-    evdev (apt และ pip)
-    pygame (apt)
-    python3, python3-pip, python3-dev (apt)
-    select, datetime, sys, os, threading, queue (built-in Python)
+- pymysql (pip)
+- evdev (apt และ pip)
+- pygame (apt)
+- python3, python3-pip, python3-dev (apt)
+- select, datetime, sys, os, threading, queue (built-in Python)
 
-### ติดตั้ง Python และ pip
 ### วิธีใช้
 
 บันทึกไฟล์นี้เป็น ~ check_and_install_libs.sh ~
+
 ให้สิทธิ์รัน:
-~~~chmod +x check_and_install_libs.sh~
+~chmod +x check_and_install_libs.sh~
+
 รัน:
 ~./check_and_install_libs.sh~
 
