@@ -1,12 +1,43 @@
-import pymysql
-from evdev import InputDevice, categorize, ecodes, list_devices
-import select
-from datetime import time, timedelta, datetime
-import pygame
-import sys
+__version__ = "1.0.0"
+__author__ = "Weerachai"
+__date__ = "2025-05-10"
+
+'''
+โปรแกรมนี้เป็น Dashboard สำหรับแสดงผลการผลิตในสายการผลิต
+โดยจะเชื่อมต่อกับฐานข้อมูล MySQL และใช้ Scanner สำหรับสแกนบาร์โค้ด
+แสดงข้อมูลต่างๆ เช่น
+- เปอร์เซ็นต์ OA
+- จำนวนชิ้นงานที่ผลิต
+- เป้าหมายการผลิต
+- การเปรียบเทียบกับแผนการผลิต
+- ประสิทธิภาพการผลิต
+
+
+โปรแกรมนี้จะทำงานบนระบบปฏิบัติการ Linux
+และต้องการสิทธิ์ในการเข้าถึงอุปกรณ์ Scanner
+โปรแกรมนี้จะทำงานในโหมด Fullscreen
+และสามารถปิดได้ด้วยการกดปุ่ม ESC
+
+v1.0.0
+    โปรแกรมนี้ใช้ไลบรารีดังต่อไปนี้:
+    - pygame
+    - threading
+    - pymysql
+    - select
+    - queue
+    - evdev
+เลือกตัวสแกนได้ 1 ตัว
+'''
+
 import os
+import sys
+import pygame
 import threading
+import pymysql
+import select
 import queue
+from datetime import time, timedelta, datetime
+from evdev import InputDevice, categorize, ecodes, list_devices
 
 class Scanner:
     def __init__(self):
