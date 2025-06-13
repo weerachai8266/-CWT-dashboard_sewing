@@ -8,13 +8,13 @@
 
 ### วิธีใช้
 
-บันทึกไฟล์นี้เป็น ~ check_and_install_libs.sh ~
+บันทึกไฟล์นี้เป็น `check_and_install_libs.sh`
 
 ให้สิทธิ์รัน:
-~chmod +x check_and_install_libs.sh~
+`chmod +x check_and_install_libs.sh`
 
 รัน:
-~./check_and_install_libs.sh~
+`./check_and_install_libs.sh`
 
 ### ติดตั้ง required packages
 ~~~ echo "🔧 กำลังติดตั้ง packages ที่จำเป็น..."
