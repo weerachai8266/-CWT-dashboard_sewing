@@ -40,15 +40,15 @@ from datetime import time, timedelta, datetime
 from evdev import InputDevice, categorize, ecodes, list_devices
 
 class Scanner:
-    def __init__(self, device_index=None):
+    def __init__(self, device_path=None, device_index=None):
         print("\nกำลังค้นหาอุปกรณ์...")
-        self.device = self.find_scanner(device_index)
+        if device_path:
+            print(f"[Scanner] Using fixed device path: {device_path}")
+            self.device = InputDevice(device_path)
+        else:
+            self.device = self.find_scanner(device_index)
         if not self.device:
             print("\n❌ ไม่พบอุปกรณ์ที่ใช้งานได้")
-            print("โปรดตรวจสอบ:")
-            print("1. เสียบ Scanner เรียบร้อยแล้ว")
-            print("2. Scanner เปิดทำงานอยู่")
-            print("3. ถ้าจำเป็นให้รันด้วย sudo")
             os._exit(1)
 
         try:
@@ -73,12 +73,7 @@ class Scanner:
 
     def find_scanner(self, device_index=None):
         devices = [InputDevice(path) for path in list_devices()]
-        print("\nรายการอุปกรณ์ที่พบทั้งหมด:")
-        print("-" * 50)
-        for i, dev in enumerate(devices):
-            print(f"{i+1}. {dev.path}: {dev.name}")
-        print("-" * 50)
-
+        
         skip_keywords = [
             'consumer control', 'system control', 'mouse', 'dell',
             'vc4-hdmi', 'keyboard system', 'keyboard consumer', 'touchpad'
@@ -112,26 +107,8 @@ class Scanner:
                 print(f"❌ ไม่พบอุปกรณ์ index={device_index}")
                 return None
 
-        if len(available_devices) == 1:
-            selected_device = available_devices[0]
-            print(f"✅ พบอุปกรณ์ที่ใช้งานได้: {selected_device.path} ({selected_device.name})")
-            return selected_device
-
-        print("\nพบหลายอุปกรณ์ที่ใช้งานได้:")
-        for i, dev in enumerate(available_devices):
-            print(f"{i+1}. {dev.path}: {dev.name}")
-        while True:
-            try:
-                choice = input("\nเลือกอุปกรณ์ (1-" + str(len(available_devices)) + "): ")
-                idx = int(choice) - 1
-                if 0 <= idx < len(available_devices):
-                    selected_device = available_devices[idx]
-                    print(f"✅ เลือกใช้: {selected_device.path} ({selected_device.name})")
-                    return selected_device
-                else:
-                    print("❌ กรุณาเลือกหมายเลขที่ถูกต้อง")
-            except ValueError:
-                print("❌ กรุณาป้อนตัวเลขเท่านั้น")
+        # ถ้าไม่ได้ระบุ index เลือกอันแรก
+        return available_devices[0]
 
     def _barcode_loop(self):
         while not self._stop_event.is_set():
@@ -202,7 +179,7 @@ class DatabaseManager:
             print(f"❌ เชื่อมต่อฐานข้อมูลล้มเหลว: {e}")
             sys.exit(1)
 
-    def insert_ok(self, item_code):
+    def insert_pd(self, item_code):
         item_code = item_code.upper()
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         sql = "INSERT INTO sewing_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
@@ -216,13 +193,13 @@ class DatabaseManager:
     def insert_qc(self, item_code):
         item_code = item_code.upper()
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        # sql = "INSERT INTO qc_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
-        # try:
-        #     self.cursor.execute(sql, (item_code, now))
-        #     self.db.commit()
-        #     print(f"✅ QC บันทึกข้อมูล: {item_code}")
-        # except pymysql.err.IntegrityError as e:
-        #     print(f"❌ QC ไม่สามารถบันทึก: {item_code} (อาจซ้ำ)")
+        sql = "INSERT INTO qc_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
+        try:
+            self.cursor.execute(sql, (item_code, now))
+            self.db.commit()
+            print(f"✅ QC บันทึกข้อมูล: {item_code}")
+        except pymysql.err.IntegrityError as e:
+            print(f"❌ QC ไม่สามารถบันทึก: {item_code} (อาจซ้ำ)")
 
     def get_target_from_cap(self):
         try:
@@ -412,25 +389,26 @@ class Dashboard:
 
         self.screen.blit(surface, rect)
 
+    # ---  process_qc_scan --- scanner1
     def process_pd_scan(self, barcode):
         if 12 < len(barcode) <= 17:
             self.last_pd_barcode = barcode
-            self.db_manager.insert_ok(barcode)
+            self.db_manager.insert_pd(barcode)
             self.show_error = False
             self.error_message = ""
         else:
-            self.error_message = "ไม่บันทึก กรุณาสแกนใหม่ (" + barcode +")"
+            self.error_message = f"ไม่บันทึก กรุณาสแกนใหม่ ({barcode})"
             self.show_error = True
 
-    # ---  process_qc_scan ---
+    # ---  process_qc_scan --- scanner2
     def process_qc_scan(self, barcode):
-        if barcode.startswith("NI"):
+        if barcode.startswith("NI") and len(barcode) > 2:
             self.last_qc_barcode = barcode
             self.db_manager.insert_qc(barcode)
             self.qc_show_error = False
             self.qc_error_message = ""
         else:
-            self.qc_error_message = "ไม่บันทึก กรุณาสแกนใหม่ (" + barcode +")"
+            self.qc_error_message = f"ไม่บันทึก กรุณาสแกนใหม่ ({barcode})"
             self.qc_show_error = True
 
     def draw_dashboard(self):
@@ -457,10 +435,10 @@ class Dashboard:
         # Barcode Display QC
         self.draw_box((975, 140, 915, 100))
         self.draw_text("QC", self.font_mini, (995, 150))
-        if self.show_error:
-            self.draw_text("Error: " + self.error_message, self.font_TH, (995, 155), self.RED)
+        if self.qc_show_error:
+            self.draw_text("Error: " + self.qc_error_message, self.font_TH, (995, 155), self.RED)
         else:
-            self.draw_text("Part: " + self.last_pd_barcode, self.font_percent, (995, 165))
+            self.draw_text("Part: " + self.last_qc_barcode, self.font_percent, (995, 165))
 
 
         # Right Panel
@@ -609,20 +587,13 @@ class Dashboard:
                         self.hourly_output = self.db_manager.get_hourly_output()
 
                 # --- รับบาร์โค้ดจาก scanner1 (หรือ scanner2) ---
-                barcode1 = self.scanner1.get_barcode()
-                barcode2 = self.scanner2.get_barcode()
+                barcode1 = self.scanner1.get_barcode() if self.scanner1 else None
+                barcode2 = self.scanner2.get_barcode() if self.scanner2 else None
 
-                # จัดลำดับการประมวลผลทั้งสองเครื่อง
-                for barcode in (barcode1, barcode2):
-                    if barcode:
-                        if barcode.startswith("Model"):
-                            self.process_ok_scan(barcode)
-                        elif barcode.startswith("NI"):
-                            self.process_qc_scan(barcode)
-                        else:
-                            # อาจขึ้น error ที่ฝั่ง OK Scan
-                            self.error_message = "ไม่บันทึก กรุณาสแกนใหม่ (" + barcode +")"
-                            self.show_error = True
+                if barcode1:
+                    self.process_pd_scan(barcode1)
+                if barcode2:
+                    self.process_qc_scan(barcode2)
 
                 self.draw_dashboard()
                 pygame.display.flip()
@@ -647,8 +618,8 @@ if __name__ == '__main__':
     try:
         print("กำลังเริ่มต้นโปรแกรม...")
         db_manager = DatabaseManager()
-        scanner1 = Scanner()
-        scanner2 = Scanner()
+        scanner1 = Scanner(device_path='/dev/input/scanner1')
+        scanner2 = Scanner(device_path='/dev/input/scanner2')
         dashboard = Dashboard(db_manager, scanner1, scanner2)
         dashboard.run()
     except Exception as e:
