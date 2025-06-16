@@ -1,0 +1,70 @@
+2025-06-16 12:23:14,729 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner1, index: None
+2025-06-16 12:23:14,730 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner1
+2025-06-16 12:23:14,731 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner1 (Newtologic  4010E)
+2025-06-16 12:23:14,732 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner2, index: None
+2025-06-16 12:23:14,733 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner2
+2025-06-16 12:23:14,734 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner2 (CX 2.4G Receiver)
+2025-06-16 12:23:21,736 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:23:21,766 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:23:21,767 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:23:21,798 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:26:10,338 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner1, index: None
+2025-06-16 12:26:10,339 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner1
+2025-06-16 12:26:10,340 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner1 (Newtologic  4010E)
+2025-06-16 12:26:10,342 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner2, index: None
+2025-06-16 12:26:10,343 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner2
+2025-06-16 12:26:10,344 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner2 (CX 2.4G Receiver)
+2025-06-16 12:26:13,137 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:26:13,178 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:26:13,183 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:26:13,218 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:29:22,169 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner1, index: None
+2025-06-16 12:29:22,171 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner1
+2025-06-16 12:29:22,172 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner1 (Newtologic  4010E)
+2025-06-16 12:29:22,175 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner2, index: None
+2025-06-16 12:29:22,177 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner2
+2025-06-16 12:29:22,178 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner2 (CX 2.4G Receiver)
+2025-06-16 12:29:24,563 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:29:24,602 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:29:24,603 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:29:24,658 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:30:53,661 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner1, index: None
+2025-06-16 12:30:53,662 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner1
+2025-06-16 12:30:53,663 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner1 (Newtologic  4010E)
+2025-06-16 12:30:53,665 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner2, index: None
+2025-06-16 12:30:53,666 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner2
+2025-06-16 12:30:53,667 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner2 (CX 2.4G Receiver)
+2025-06-16 12:31:07,358 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:31:07,394 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:31:07,395 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:31:07,426 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:32:21,329 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner1, index: None
+2025-06-16 12:32:21,330 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner1
+2025-06-16 12:32:21,331 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner1 (Newtologic  4010E)
+2025-06-16 12:32:21,333 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner2, index: None
+2025-06-16 12:32:21,335 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner2
+2025-06-16 12:32:21,336 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner2 (CX 2.4G Receiver)
+2025-06-16 12:32:24,222 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:32:24,254 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:32:24,256 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:32:24,286 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:33:51,727 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner1, index: None
+2025-06-16 12:33:51,729 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner1
+2025-06-16 12:33:51,730 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner1 (Newtologic  4010E)
+2025-06-16 12:33:51,732 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner2, index: None
+2025-06-16 12:33:51,733 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner2
+2025-06-16 12:33:51,733 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner2 (CX 2.4G Receiver)
+2025-06-16 12:33:55,756 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:33:55,802 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:33:55,803 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:33:55,838 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:37:05,674 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner1, index: None
+2025-06-16 12:37:05,676 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner1
+2025-06-16 12:37:05,677 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner1 (Newtologic  4010E)
+2025-06-16 12:37:05,680 - scanner - [INFO] - User: weerachai8266 - Initializing Scanner with path: /dev/input/scanner2, index: None
+2025-06-16 12:37:05,681 - scanner - [INFO] - User: weerachai8266 - Using fixed device path: /dev/input/scanner2
+2025-06-16 12:37:05,682 - scanner - [INFO] - User: weerachai8266 - Device setup complete: /dev/input/scanner2 (CX 2.4G Receiver)
+2025-06-16 12:37:15,344 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:37:15,390 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully
+2025-06-16 12:37:15,391 - scanner - [INFO] - User: weerachai8266 - Cleaning up scanner resources
+2025-06-16 12:37:15,430 - scanner - [INFO] - User: weerachai8266 - Device ungrabbed successfully

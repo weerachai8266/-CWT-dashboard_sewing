@@ -1,0 +1,105 @@
+2025-06-16 12:23:14,705 - main - [INFO] - User: weerachai8266 - Starting CWT Dashboard application - Version 2.1
+2025-06-16 12:23:14,706 - main - [INFO] - User: weerachai8266 - User: weerachai8266
+2025-06-16 12:23:14,710 - main - [INFO] - User: weerachai8266 - System time (UTC): 2025-06-16 05:20:39
+2025-06-16 12:23:21,717 - main - [ERROR] - User: weerachai8266 - Application error: [Errno 2] No such file or directory: 'fonts/THSarabunNew Bold.ttf'
+2025-06-16 12:23:21,734 - main - [ERROR] - User: weerachai8266 - Traceback (most recent call last):
+  File "/home/cwt/sew/V2/main-v2.1.py", line 28, in main
+    dashboard = Dashboard(
+                ^^^^^^^^^^
+  File "/home/cwt/sew/V2/dashboard.py", line 41, in __init__
+    self._load_fonts()
+  File "/home/cwt/sew/V2/dashboard.py", line 56, in _load_fonts
+    self.font_TH = pygame.font.Font("fonts/THSarabunNew Bold.ttf", 50)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'fonts/THSarabunNew Bold.ttf'
+
+2025-06-16 12:26:10,322 - main - [INFO] - User: weerachai8266 - Starting CWT Dashboard application - Version 2.1
+2025-06-16 12:26:10,323 - main - [INFO] - User: weerachai8266 - User: weerachai8266
+2025-06-16 12:26:10,324 - main - [INFO] - User: weerachai8266 - System time (UTC): 2025-06-16 05:20:39
+2025-06-16 12:26:13,097 - main - [ERROR] - User: weerachai8266 - Application error: not a file object
+2025-06-16 12:26:13,101 - main - [ERROR] - User: weerachai8266 - Traceback (most recent call last):
+  File "/home/cwt/sew/V2/main-v2.1.py", line 28, in main
+    dashboard = Dashboard(
+                ^^^^^^^^^^
+  File "/home/cwt/sew/V2/dashboard.py", line 41, in __init__
+    self._load_fonts()
+  File "/home/cwt/sew/V2/dashboard.py", line 56, in _load_fonts
+    self.font_TH = pygame.font.Font("fonts/THSarabunNew Bold.ttf", 50)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: not a file object
+
+2025-06-16 12:29:22,148 - main - [INFO] - User: weerachai8266 - Starting CWT Dashboard application - Version 2.1
+2025-06-16 12:29:22,149 - main - [INFO] - User: weerachai8266 - User: weerachai8266
+2025-06-16 12:29:22,151 - main - [INFO] - User: weerachai8266 - System time (UTC): 2025-06-16 05:20:39
+2025-06-16 12:29:24,558 - main - [ERROR] - User: weerachai8266 - Application error: not a file object
+2025-06-16 12:29:24,562 - main - [ERROR] - User: weerachai8266 - Traceback (most recent call last):
+  File "/home/cwt/sew/V2/main-v2.1.py", line 28, in main
+    dashboard = Dashboard(
+                ^^^^^^^^^^
+  File "/home/cwt/sew/V2/dashboard.py", line 41, in __init__
+    self._load_fonts()
+  File "/home/cwt/sew/V2/dashboard.py", line 56, in _load_fonts
+    self.font_TH = pygame.font.Font("fonts/THSarabunNew Bold.ttf", 50)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: not a file object
+
+2025-06-16 12:30:53,644 - main - [INFO] - User: weerachai8266 - Starting CWT Dashboard application - Version 2.1
+2025-06-16 12:30:53,645 - main - [INFO] - User: weerachai8266 - User: weerachai8266
+2025-06-16 12:30:53,645 - main - [INFO] - User: weerachai8266 - System time (UTC): 2025-06-16 05:29:37
+2025-06-16 12:31:07,348 - main - [ERROR] - User: weerachai8266 - Application error: not a file object
+2025-06-16 12:31:07,357 - main - [ERROR] - User: weerachai8266 - Traceback (most recent call last):
+  File "/home/cwt/sew/V2/main-v2.1.py", line 28, in main
+    dashboard = Dashboard(
+                ^^^^^^^^^^
+  File "/home/cwt/sew/V2/dashboard.py", line 41, in __init__
+    self._load_fonts()
+  File "/home/cwt/sew/V2/dashboard.py", line 56, in _load_fonts
+    self.font_TH = pygame.font.Font("fonts/THSarabunNew Bold.ttf", 50)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: not a file object
+
+2025-06-16 12:32:21,299 - main - [INFO] - User: weerachai8266 - Starting CWT Dashboard application - Version 2.1
+2025-06-16 12:32:21,300 - main - [INFO] - User: weerachai8266 - User: weerachai8266
+2025-06-16 12:32:21,302 - main - [INFO] - User: weerachai8266 - System time (UTC): 2025-06-16 05:29:37
+2025-06-16 12:32:24,213 - main - [ERROR] - User: weerachai8266 - Application error: name 'os' is not defined
+2025-06-16 12:32:24,220 - main - [ERROR] - User: weerachai8266 - Traceback (most recent call last):
+  File "/home/cwt/sew/V2/main-v2.1.py", line 28, in main
+    dashboard = Dashboard(
+                ^^^^^^^^^^
+  File "/home/cwt/sew/V2/dashboard.py", line 41, in __init__
+    self._load_fonts()
+  File "/home/cwt/sew/V2/dashboard.py", line 57, in _load_fonts
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+               ^^
+NameError: name 'os' is not defined
+
+2025-06-16 12:33:51,704 - main - [INFO] - User: weerachai8266 - Starting CWT Dashboard application - Version 2.1
+2025-06-16 12:33:51,707 - main - [INFO] - User: weerachai8266 - User: weerachai8266
+2025-06-16 12:33:51,709 - main - [INFO] - User: weerachai8266 - System time (UTC): 2025-06-16 05:29:37
+2025-06-16 12:33:55,736 - main - [ERROR] - User: weerachai8266 - Application error: not a file object
+2025-06-16 12:33:55,754 - main - [ERROR] - User: weerachai8266 - Traceback (most recent call last):
+  File "/home/cwt/sew/V2/main-v2.1.py", line 28, in main
+    dashboard = Dashboard(
+                ^^^^^^^^^^
+  File "/home/cwt/sew/V2/dashboard.py", line 42, in __init__
+    self._load_fonts()
+  File "/home/cwt/sew/V2/dashboard.py", line 61, in _load_fonts
+    self.font_TH = pygame.font.Font(font_path, 50)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: not a file object
+
+2025-06-16 12:37:05,646 - main - [INFO] - User: weerachai8266 - Starting CWT Dashboard application - Version 2.1
+2025-06-16 12:37:05,647 - main - [INFO] - User: weerachai8266 - User: weerachai8266
+2025-06-16 12:37:05,652 - main - [INFO] - User: weerachai8266 - System time (UTC): 2025-06-16 05:29:37
+2025-06-16 12:37:15,334 - main - [ERROR] - User: weerachai8266 - Application error: not a file object
+2025-06-16 12:37:15,343 - main - [ERROR] - User: weerachai8266 - Traceback (most recent call last):
+  File "/home/cwt/sew/V2/main-v2.1.py", line 28, in main
+    dashboard = Dashboard(
+                ^^^^^^^^^^
+  File "/home/cwt/sew/V2/dashboard.py", line 42, in __init__
+    self._load_fonts()
+  File "/home/cwt/sew/V2/dashboard.py", line 58, in _load_fonts
+    self.font_TH = pygame.font.Font("./fonts/THSarabunNew Bold.ttf", 50)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: not a file object
+

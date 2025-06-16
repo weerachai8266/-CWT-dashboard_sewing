@@ -1,0 +1,7 @@
+2025-06-16 12:23:21,716 - dashboard - [ERROR] - User: weerachai8266 - Font loading error: [Errno 2] No such file or directory: 'fonts/THSarabunNew Bold.ttf'
+2025-06-16 12:26:13,096 - dashboard - [ERROR] - User: weerachai8266 - Font loading error: not a file object
+2025-06-16 12:29:24,557 - dashboard - [ERROR] - User: weerachai8266 - Font loading error: not a file object
+2025-06-16 12:31:07,340 - dashboard - [ERROR] - User: weerachai8266 - Font loading error: not a file object
+2025-06-16 12:32:24,211 - dashboard - [ERROR] - User: weerachai8266 - Font loading error: name 'os' is not defined
+2025-06-16 12:33:55,735 - dashboard - [ERROR] - User: weerachai8266 - Font loading error: not a file object
+2025-06-16 12:37:15,332 - dashboard - [ERROR] - User: weerachai8266 - Font loading error: not a file object
