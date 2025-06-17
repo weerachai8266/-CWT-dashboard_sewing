@@ -93,9 +93,19 @@ class DatabaseManager:
             print(f"Error fetching man act: {e}")
             return "0"
 
-    def get_output_count(self):
+    def get_output_count_pd(self):
         try:
             sql = "SELECT COUNT(`qty`) FROM `sewing_3rd` WHERE DATE(created_at) = CURDATE() LIMIT 1"
+            self.cursor.execute(sql)
+            result = self.cursor.fetchone()
+            return str(result[0]) if result and result[0] is not None else "0"
+        except Exception as e:
+            print(f"Error fetching output count: {e}")
+            return "0"
+
+    def get_output_count_qc(self):
+        try:
+            sql = "SELECT COUNT(`qty`) FROM `qc_3rd` WHERE DATE(created_at) = CURDATE() LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -133,6 +143,41 @@ class DatabaseManager:
         hourly_minutes = {}
         for hr, mn in results:
             dt = datetime(2000,1,1,hr,mn)
+            if not is_break(dt):
+                hourly_minutes.setdefault(hr, set()).add(mn)
+        hourly_output = {hr: len(mns) for hr, mns in hourly_minutes.items()}
+        return hourly_output
+
+    def get_hourly_qc_output(self):
+        sql = """
+            SELECT HOUR(created_at) AS hr, COUNT(*) AS pcs
+            FROM qc_3rd
+            WHERE DATE(created_at) = CURDATE()
+            GROUP BY hr
+            ORDER BY hr
+        """
+        try:
+            self.cursor.execute(sql)
+            results = self.cursor.fetchall()
+            output = {int(row[0]): int(row[1]) for row in results}
+            return output
+        except Exception as e:
+            print(f"Error fetching hourly output: {e}")
+            return {}
+
+    def get_hourly_qc_output_detailed(self, for_date=None):
+        if not for_date:
+            for_date = datetime.now().strftime("%Y-%m-%d")
+        sql = """
+            SELECT HOUR(created_at), MINUTE(created_at)
+            FROM qc_3rd
+            WHERE DATE(created_at) = %s
+        """
+        self.cursor.execute(sql, (for_date,))
+        results = self.cursor.fetchall()
+        hourly_minutes = {}
+        for hr, mn in results:
+            dt = datetime(2000, 1, 1, hr, mn)
             if not is_break(dt):
                 hourly_minutes.setdefault(hr, set()).add(mn)
         hourly_output = {hr: len(mns) for hr, mns in hourly_minutes.items()}
