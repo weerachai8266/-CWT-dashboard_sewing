@@ -1,56 +1,44 @@
-from evdev import InputDevice, list_devices, ecodes
 import os
 import threading
-import select
 import queue
-import logging
-from utils.logger import setup_logger
-
-logger = setup_logger('scanner')
+import select
+from evdev import InputDevice, ecodes, list_devices
 
 class Scanner:
     def __init__(self, device_path=None, device_index=None):
-        logger.info(f"Initializing Scanner with path: {device_path}, index: {device_index}")
+        print("\nกำลังค้นหาอุปกรณ์...")
         if device_path:
-            try:
-                self.device = InputDevice(device_path)
-                logger.info(f"Using fixed device path: {device_path}")
-            except Exception as e:
-                logger.error(f"Error opening device {device_path}: {e}")
-                raise
+            print(f"[Scanner] Using fixed device path: {device_path}")
+            self.device = InputDevice(device_path)
         else:
             self.device = self.find_scanner(device_index)
-        
         if not self.device:
-            logger.error("No scanner device found")
-            raise RuntimeError("Scanner device not found")
+            print("\n❌ ไม่พบอุปกรณ์ที่ใช้งานได้")
+            os._exit(1)
 
-        self._setup_device()
-        self._initialize_buffer()
-        self._start_reading_thread()
-
-    def _setup_device(self):
         try:
-            self.device.grab()
+            self.device.read()  # ล้าง events เก่า
+            self.device.grab()  # จอง device ไว้ใช้งาน
+
             import fcntl
             flag = fcntl.fcntl(self.device.fd, fcntl.F_GETFL)
             fcntl.fcntl(self.device.fd, fcntl.F_SETFL, flag | os.O_NONBLOCK)
-            logger.info(f"Device setup complete: {self.device.path} ({self.device.name})")
-        except Exception as e:
-            logger.error(f"Device setup failed: {e}")
-            raise
 
-    def _initialize_buffer(self):
+            print(f"✅ เริ่มใช้งานอุปกรณ์สำเร็จ")
+        except Exception as e:
+            print(f"❌ ไม่สามารถใช้งานอุปกรณ์ได้: {e}")
+            print("ลองรันโปรแกรมด้วย sudo")
+            os._exit(1)
+
         self.buffer = ''
         self.barcode_queue = queue.Queue()
         self._stop_event = threading.Event()
-
-    def _start_reading_thread(self):
         self.thread = threading.Thread(target=self._barcode_loop, daemon=True)
         self.thread.start()
 
     def find_scanner(self, device_index=None):
         devices = [InputDevice(path) for path in list_devices()]
+        
         skip_keywords = [
             'consumer control', 'system control', 'mouse', 'dell',
             'vc4-hdmi', 'keyboard system', 'keyboard consumer', 'touchpad'
@@ -59,6 +47,7 @@ class Scanner:
             'scanner', 'barcode', 'newtologic', 'datalogic',
             'honeywell', 'zebra', 'symbol'
         ]
+
         available_devices = []
         for dev in devices:
             name = dev.name.lower()
@@ -69,15 +58,21 @@ class Scanner:
                 continue
             if 'keyboard' in name and not any(skip in name for skip in skip_keywords):
                 available_devices.append(dev)
+
         if not available_devices:
-            logger.error("No scanner or usable device found")
+            print("❌ ไม่พบ Scanner หรือ อุปกรณ์ที่ใช้งานได้")
             return None
+
         if device_index is not None:
             if 0 <= device_index < len(available_devices):
-                return available_devices[device_index]
+                selected_device = available_devices[device_index]
+                print(f"✅ เลือกใช้: {selected_device.path} ({selected_device.name})")
+                return selected_device
             else:
-                logger.error(f"Invalid device index: {device_index}")
+                print(f"❌ ไม่พบอุปกรณ์ index={device_index}")
                 return None
+
+        # ถ้าไม่ได้ระบุ index เลือกอันแรก
         return available_devices[0]
 
     def _barcode_loop(self):
@@ -123,16 +118,13 @@ class Scanner:
             }
             if key in special_chars:
                 return special_chars[key]
+            print(f"Unknown key: {key}")
             return None
-        except Exception:
+        except Exception as e:
+            print(f"❌ แปลงคีย์ผิดพลาด: {e}")
             return None
 
     def cleanup(self):
-        logger.info("Cleaning up scanner resources")
         self._stop_event.set()
         if hasattr(self, 'device') and self.device:
-            try:
-                self.device.ungrab()
-                logger.info("Device ungrabbed successfully")
-            except Exception as e:
-                logger.error(f"Error during device cleanup: {e}")
+            self.device.ungrab()

@@ -1,126 +1,87 @@
 import pygame
-import logging
-from utils.logger import setup_logger
-from datetime import datetime, time
-import os
-
-logger = setup_logger('dashboard')
+from datetime import datetime
+from database import working_minutes_in_hour
 
 class Dashboard:
-    # Display constants
-    DISPLAY_WIDTH = 1920
-    DISPLAY_HEIGHT = 1080
-    STATION_NAME = "3RD-A"
-    
-    # Colors
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    RED = (255, 0, 0)
-    GREEN = (0, 255, 0)
-    
-    # Break periods
-    BREAK_PERIODS = [
-        {
-            'start': time(10, 0),  # 10:00
-            'end': time(10, 15),   # 10:15
-            'name': 'Morning Break'
-        },
-        {
-            'start': time(12, 0),  # 12:00
-            'end': time(13, 0),    # 13:00
-            'name': 'Lunch Break'
-        },
-        {
-            'start': time(15, 0),  # 15:00
-            'end': time(15, 15),   # 15:15
-            'name': 'Afternoon Break'
-        }
-    ]
-
-    def __init__(self, db_manager, scanner1, scanner2, current_user, current_datetime):
-        self._init_pygame()
-        self._load_fonts()
-        self._init_variables(db_manager, scanner1, scanner2)
-        self.current_user = current_user
-        self.current_datetime = current_datetime
-
-    def _init_pygame(self):
-        pygame.init()
-        self.screen = pygame.display.set_mode(
-            (self.DISPLAY_WIDTH, self.DISPLAY_HEIGHT), 
-            pygame.FULLSCREEN
-        )
-        pygame.display.set_caption("CWT Dashboard")
-
-    def _load_fonts(self):
-        try:
-            # ใช้วิธีโหลดฟอนต์แบบเดิมจาก v2
-            self.font_TH = pygame.font.Font("./fonts/THSarabunNew Bold.ttf", 50)
-            self.font_mini = pygame.font.Font("./fonts/THSarabunNew Bold.ttf", 40)
-            self.font_percent = pygame.font.Font("./fonts/THSarabunNew Bold.ttf", 60)
-        except Exception as e:
-            logger.error(f"Font loading error: {e}")
-            raise
-
-    def _init_variables(self, db_manager, scanner1, scanner2):
+    def __init__(self, db_manager, scanner1, scanner2):
         self.db_manager = db_manager
         self.scanner1 = scanner1
         self.scanner2 = scanner2
-        
-        # Production variables
+        pygame.init()
+        self.UPDATE_EVENT = pygame.USEREVENT + 1
+        pygame.time.set_timer(self.UPDATE_EVENT, 1000)
+        self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        pygame.display.set_caption("Production Dashboard")
+        self.width, self.height = self.screen.get_size()
+        self.setup_fonts()
+        self.setup_colors()
         self.last_pd_barcode = ""
-        self.show_error = False
         self.error_message = ""
-        
-        # QC variables
+        self.show_error = False
         self.last_qc_barcode = ""
-        self.qc_show_error = False
         self.qc_error_message = ""
+        self.qc_show_error = False
 
-    def is_break_time(self):
-        """ตรวจสอบว่าเป็นเวลาพักหรือไม่"""
-        current_time = self.current_datetime.time()
-        for period in self.BREAK_PERIODS:
-            if period['start'] <= current_time <= period['end']:
-                return True, period['name']
-        return False, None
+        self.target_value = self.db_manager.get_target_from_cap()
+        self.man_plan = self.db_manager.get_man_plan()
+        self.man_act = self.db_manager.get_man_act()
+        self.output_value = self.db_manager.get_output_count()
+        self.hourly_output = self.db_manager.get_hourly_output_detailed()
+        self.target_value = int(self.db_manager.get_target_from_cap())
 
-    def draw_text(self, text, font, position, color=WHITE):
-        """วาดข้อความบนหน้าจอ"""
-        text_surface = font.render(text, True, color)
-        self.screen.blit(text_surface, position)
+    def setup_fonts(self):
+        self.font_header = pygame.font.SysFont('Arial', 50, bold=True)
+        self.font_label = pygame.font.SysFont('Arial', 40, bold=True)
+        self.font_percent = pygame.font.SysFont('Arial', 60, bold=True)
+        self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
+        self.font_mini = pygame.font.SysFont('Arial', 15, bold=True)
+        self.font_big = pygame.font.SysFont('Consolas', 150, bold=True)
+        self.font_TH = pygame.font.SysFont('FreeSerif', 60, bold=True) # TH
 
-    def draw_box(self, rect):
-        """วาดกรอบสี่เหลี่ยม"""
-        pygame.draw.rect(self.screen, self.WHITE, rect, 2)
+    def setup_colors(self):
+        self.BLACK = (0, 0, 0)
+        self.WHITE = (255, 255, 255)
+        self.GREEN = (0, 175, 0)
+        self.ORANGE = (255, 140, 0)
+        self.RED = (175, 0, 0)
+        self.GREY = (128, 128, 128)
+        self.PINK = (255, 192, 203)
+        self.BLUE = (50, 150, 255)
 
-    def draw_header(self):
-        """วาดส่วน header พร้อมแสดงสถานะเวลาพัก"""
-        current_time = self.current_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        is_break, break_name = self.is_break_time()
-        
-        # Draw basic info
-        self.draw_text(f"Station: {self.STATION_NAME}", self.font_mini, (50, 10))
-        self.draw_text(f"User: {self.current_user}", self.font_mini, (50, 50))
-        self.draw_text(f"Time (UTC): {current_time}", self.font_mini, (50, 90))
+    def get_threshold_color(self, value, green=90, orange=80):
+        if value >= green:
+            return self.GREEN
+        elif value >= orange:
+            return self.ORANGE
+        else:
+            return self.RED
 
-        # Draw break status
-        if is_break:
-            self.draw_text(f"Break Time: {break_name}", self.font_mini, (50, 130), self.RED)
+    def draw_box(self, rect, fill_color=None, border_color=None, border=3, radius=10):
+        if fill_color is None: fill_color = self.BLACK
+        if border_color is None: border_color = self.GREY
+        pygame.draw.rect(self.screen, fill_color, rect, border_radius=radius)
+        pygame.draw.rect(self.screen, border_color, rect, border, border_radius=radius)
 
-    def draw_break_schedule(self, x, y):
-        """วาดตารางเวลาพัก"""
-        self.draw_text("Break Schedule:", self.font_mini, (x, y))
-        y_offset = 40
-        for period in self.BREAK_PERIODS:
-            break_text = f"{period['name']}: {period['start'].strftime('%H:%M')} - {period['end'].strftime('%H:%M')}"
-            self.draw_text(break_text, self.font_mini, (x, y + y_offset))
-            y_offset += 40
+    def draw_text(self, text, font, pos, color=None, align="left"):
+        if color is None:
+            color = self.WHITE
+        surface = font.render(str(text), True, color)
+        rect = surface.get_rect()
+        x, y = pos
+
+        if align == "center":
+            rect.center = (x, y)
+        elif align == "right":
+            rect.topright = (x, y)
+        else:  # "left"
+            rect.topleft = (x, y)
+
+        self.screen.blit(surface, rect)
 
     def process_pd_scan(self, barcode):
         if 12 < len(barcode) <= 17:
             self.last_pd_barcode = barcode
-            self.db_manager.insert_ok(barcode)
+            self.db_manager.insert_pd(barcode)
             self.show_error = False
             self.error_message = ""
         else:
@@ -137,52 +98,173 @@ class Dashboard:
             self.qc_error_message = f"ไม่บันทึก กรุณาสแกนใหม่ ({barcode})"
             self.qc_show_error = True
 
-    def update_display(self):
-        """อัพเดทหน้าจอ"""
+    def draw_dashboard(self):
         self.screen.fill(self.BLACK)
-        
-        # Draw header with break status
-        self.draw_header()
-        
-        # Draw break schedule
-        self.draw_break_schedule(1500, 10)
-        
-        # Draw scanner data boxes
-        # Production box
+
+        # Header
+        self.draw_box((30, 20, 1300, 100))
+        self.draw_text("Line Name : 3RD", self.font_header, (50, 45))
+
+        # DateTime
+        self.draw_box((1350, 20, 538, 100))
+        now = datetime.now()
+        self.draw_text(" DATE : " + now.strftime("%d/%m/%Y"), self.font_small, (1380, 35))
+        self.draw_text(" TIME  : " + now.strftime("%H:%M:%S"), self.font_small, (1380, 75))
+
+        # Barcode Display Production
         self.draw_box((30, 140, 915, 100))
-        self.draw_text("Production", self.font_mini, (50, 150))
+        self.draw_text("Production", self.font_mini, (50, 150), self.BLUE)
         if self.show_error:
             self.draw_text("Error: " + self.error_message, self.font_TH, (50, 155), self.RED)
         else:
             self.draw_text("Model: " + self.last_pd_barcode, self.font_percent, (50, 165))
 
-        # QC box
+        # Barcode Display QC
         self.draw_box((975, 140, 915, 100))
-        self.draw_text("QC", self.font_mini, (995, 150))
-
+        self.draw_text("QC", self.font_mini, (995, 150), self.BLUE)
         if self.qc_show_error:
             self.draw_text("Error: " + self.qc_error_message, self.font_TH, (995, 155), self.RED)
         else:
             self.draw_text("Part: " + self.last_qc_barcode, self.font_percent, (995, 165))
 
-        pygame.display.flip()
+        # Right Panel
+        gap_right_label =   47
+        gap_right_value =   80
+        px_right_x  =   995
+        px_right_y  =   260
+
+        bar_x = 1650               # ตำแหน่ง X bar
+        bar_height = 30            # ความสูง bar
+        bar_max_width = 200        # ความกว้าง bar 100%
+        bar_y_start = px_right_y
+
+        self.draw_box((975, 250, 915, 720))
+
+        eff_per_hour = []
+        for i, hour in enumerate(range(8, 23)):
+            hour = 8 + i
+            pcs = self.hourly_output.get(hour, 0)
+            work_min = working_minutes_in_hour(hour)                                     #   hour
+            target = int(self.target_value) if str(self.target_value).isdigit() else 0
+            target_hr = int(target * (work_min / 60)) if work_min else 0                 #   target / hr
+            diff_hr = pcs - target_hr                                                    #   diff / hr
+
+            if pcs != 0:
+                target = int(self.target_value) if str(self.target_value).isdigit() else 0
+                percent = (pcs / target_hr) * 100 if target_hr > 0 else 0
+                pcs_per_hour = f"{pcs} / {target_hr} Pcs"
+                oa_per_hour = f"{percent:5.2f} %"
+                eff_per_hour.append(percent)  # เก็บค่า OA % สำหรับคำนวณประสิทธิภาพรวม
+                percent_color = self.get_threshold_color(percent)
+                bar_color = percent_color
+                bar_width = int(min(percent, 100) / 100 * bar_max_width)
+            else:
+                pcs_per_hour = ""
+                oa_per_hour = ""
+                percent_color = self.BLACK
+                bar_color = self.GREY
+                bar_width = 0
+
+            y = bar_y_start + gap_right_label * i
+
+            self.draw_text(f"{i+8:02d}:00", self.font_label, (px_right_x, px_right_y+(gap_right_label*i)))
+            self.draw_text(pcs_per_hour, self.font_label, (1400, y), percent_color, align="right")
+            self.draw_text(oa_per_hour, self.font_label, (1620, y), percent_color, align="right")
+            pygame.draw.rect(self.screen, bar_color, (bar_x, y, bar_width, bar_height))
+            pygame.draw.rect(self.screen, self.GREY, (bar_x, y, bar_max_width, bar_height), 2)
+
+        # Left Panel
+        gab_left   =   85
+        px_left_x_label  =   50
+        px_left_x_value  =   910
+        px_left_y  =   250
+
+        self.draw_box((30, 250, 915, 720))   
+        
+        if eff_per_hour:
+            efficiency = sum(eff_per_hour) / len(eff_per_hour)
+        else:
+            efficiency = 0.0
+
+        self.efficiency = efficiency
+        eff_color = self.get_threshold_color(self.efficiency)
+        self.draw_text("OA %", self.font_header, (50, px_left_y))
+        pygame.draw.line(self.screen, self.GREY, (50, 430), (px_left_x_value, 430), 1)
+        self.draw_text(f"{self.efficiency:5.2f}", self.font_percent, (px_left_x_value, 360), eff_color, align="right")
+
+        self.draw_text("Output (Pcs)", self.font_header, (50, px_left_y+(gab_left*1)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left*1)), (px_left_x_value, 430+(gab_left*1)), 1)
+        self.draw_text(self.output_value, self.font_percent, (px_left_x_value, 360+(gab_left*1)), self.GREEN, align="right")
+
+        self.draw_text("Target / Hr (Pcs)", self.font_header, (50, px_left_y+(gab_left*2)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left*2)), (px_left_x_value, 430+(gab_left*2)), 1)
+        self.draw_text(self.target_value, self.font_percent, (px_left_x_value, 360+(gab_left*2)), self.GREEN, align="right")
+
+        diff_each_hour = []
+        for hour in self.hourly_output:
+            pcs = self.hourly_output.get(hour, 0)
+            work_min = working_minutes_in_hour(hour)
+            target = int(self.target_value) if str(self.target_value).isdigit() else 0
+            target_hr = int(target * (work_min / 60)) if work_min else 0
+            diff_hr = pcs - target_hr
+            diff_each_hour.append(diff_hr)
+
+        diff_total = sum(diff_each_hour)
+        if diff_total < 0:
+            diff_color = self.RED
+        elif diff_total == 0:
+            diff_color = self.GREEN
+        else:
+            diff_color = self.ORANGE
+
+        self.draw_text("Diff (Pcs)", self.font_header, (50, px_left_y+(gab_left*3)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left*3)), (px_left_x_value, 430+(gab_left*3)), 1)
+        self.draw_text(f"{diff_total}", self.font_percent, (px_left_x_value, 360+(gab_left*3)), diff_color, align="right")
+
+        self.draw_text("NG (Pcs)", self.font_header, (50, px_left_y+(gab_left*4)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left*4)), (px_left_x_value, 430+(gab_left*4)), 1)
+        self.draw_text("00", self.font_percent, (px_left_x_value, 360+(gab_left*4)), self.RED, align="right")
+
+        num_hours = len(self.hourly_output)
+        if int(self.man_plan) > 0:
+            productivity_plan = int(self.target_value) / int(self.man_plan)
+        else:
+            productivity_plan = 0.0
+        if int(self.man_act) > 0 and num_hours > 0:
+            productivity_act = int(self.output_value) / int(self.man_act) / num_hours
+        else:
+            productivity_act = 0.0   
+
+        self.draw_text("Productivity Plan", self.font_header, (50, px_left_y+(gab_left*5)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left*5)), (px_left_x_value, 430+(gab_left*5)), 1)
+        self.draw_text(f"{productivity_plan:.1f}", self.font_percent, (px_left_x_value, 360+(gab_left*5)), self.GREEN, align="right")
+
+        self.draw_text("Productivity Act", self.font_header, (50, px_left_y+(gab_left*6)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left*6)), (px_left_x_value, 430+(gab_left*6)), 1)
+        self.draw_text(f"{productivity_act:.1f}", self.font_percent, (px_left_x_value, 360+(gab_left*6)), self.GREEN, align="right")
+
+        self.draw_text("Man (Act / Plan)", self.font_header, (50, px_left_y+(gab_left*7)))
+        pygame.draw.line(self.screen, self.GREY, (50, 430+(gab_left*7)), (px_left_x_value, 430+(gab_left*7)), 1)
+        self.draw_text(f"{self.man_act} / {self.man_plan}", self.font_percent, (px_left_x_value, 360+(gab_left*7)), self.GREEN, align="right")
 
     def run(self):
-        """Main loop with break time handling"""
-        clock = pygame.time.Clock()
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        return
+        try:
+            while True:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                        print("กำลังปิดโปรแกรม...")
+                        self.cleanup()
+                        pygame.quit()
+                        import os
+                        os._exit(0)
+                    elif event.type == self.UPDATE_EVENT:
+                        self.target_value = self.db_manager.get_target_from_cap()
+                        self.man_plan = self.db_manager.get_man_plan()
+                        self.man_act = self.db_manager.get_man_act()
+                        self.output_value = self.db_manager.get_output_count()
+                        self.eff = round(float(self.output_value) / float(self.target_value) * 100, 2) if float(self.target_value) != 0 else 0.00
+                        self.hourly_output = self.db_manager.get_hourly_output()
 
-            # Check for break time
-            is_break, break_name = self.is_break_time()
-            
-            # Only process barcodes if not in break time
-            if not is_break:
                 barcode1 = self.scanner1.get_barcode() if self.scanner1 else None
                 barcode2 = self.scanner2.get_barcode() if self.scanner2 else None
 
@@ -190,7 +272,19 @@ class Dashboard:
                     self.process_pd_scan(barcode1)
                 if barcode2:
                     self.process_qc_scan(barcode2)
-            
-            # Update display
-            self.update_display()
-            clock.tick(60)
+
+                self.draw_dashboard()
+                pygame.display.flip()
+        except Exception as e:
+            print(f"Dashboard error: {e}")
+            import os
+            os._exit(1)
+
+    def cleanup(self):
+        try:
+            if hasattr(self, 'scanner1'):
+                self.scanner1.cleanup()
+            if hasattr(self, 'scanner2'):
+                self.scanner2.cleanup()
+        except Exception as e:
+            print(f"Dashboard cleanup error: {e}")
