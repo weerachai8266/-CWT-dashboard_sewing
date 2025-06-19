@@ -9,7 +9,7 @@ sudo apt install python3 python3-pip
 python3 --version
 pip3 --version
 ~~~
-
+---
 # install packages 
 ### รายชื่อไลบรารีที่ต้องใช้
 - pymysql (pip)
