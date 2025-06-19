@@ -10,6 +10,7 @@ APT_PACKAGES=(
     python3-dev
     python3-pygame
     python3-evdev
+    python3-pymysql    # เพิ่มตรงนี้: ติดตั้ง PyMySQL ผ่าน apt
 )
 
 echo "ตรวจสอบและติดตั้งไลบรารีระบบ (apt)..."
@@ -23,9 +24,9 @@ for pkg in "${APT_PACKAGES[@]}"; do
 done
 
 echo ""
-echo "ติดตั้งไลบรารี Python ที่จำเป็น (pip3)..."
+echo "ติดตั้งไลบรารี Python เพิ่มเติมที่จำเป็น (pip3)..."
 pip3 install --upgrade pip
-pip3 install pymysql evdev
+pip3 install evdev
 
 echo ""
-echo "ตรวจสอบและติดตั้งไลบรารีเสร็จสิ้น!"
+echo "ติดตั้งไลบรารีทั้งหมดเสร็จสิ้น!"
