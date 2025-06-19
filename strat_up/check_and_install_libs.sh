@@ -8,7 +8,7 @@ APT_PACKAGES=(
     python3
     python3-pip
     python3-dev
-    python3-pygame
+    python3-pygame>=2.0,<2.1
     python3-evdev
     python3-pymysql    # เพิ่มตรงนี้: ติดตั้ง PyMySQL ผ่าน apt
 )
