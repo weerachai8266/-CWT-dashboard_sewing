@@ -1,3 +1,15 @@
+# ✅ วิธีติดตั้ง Python
+##🔹 บน Debian / Ubuntu / Raspberry Pi OS
+~~~bash
+sudo apt update
+sudo apt install python3 python3-pip
+~~~
+##ตรวจสอบ:
+~~~bash
+python3 --version
+pip3 --version
+~~~
+
 # install packages 
 ### รายชื่อไลบรารีที่ต้องใช้
 - pymysql (pip)
