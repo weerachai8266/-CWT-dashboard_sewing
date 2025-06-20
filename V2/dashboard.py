@@ -140,7 +140,7 @@ class Dashboard:
         bar_y_start = px_right_y
 
         gab_line_x = 130
-        pygame.draw.line(self.screen, self.GREY, (px_right_x, 302), (1870, 302), 1)
+        pygame.draw.line(self.screen, self.GREY, (px_right_x, 305), (1875, 305), 1)
         pygame.draw.line(self.screen, self.GREY, (1120, 270), (1120, 1055), 1)                                      # Time
         pygame.draw.line(self.screen, self.GREY, (1120 + gab_line_x * 1, 270), (1120 + gab_line_x * 1, 1055), 1);   # PD
         pygame.draw.line(self.screen, self.GREY, (1120 + gab_line_x * 2, 270), (1120 + gab_line_x * 2, 1055), 1);   # QC
@@ -153,7 +153,16 @@ class Dashboard:
         self.draw_text("QC", self.font_small, (1290, px_right_y_header), self.BLUE)
         self.draw_text("Target", self.font_small, (1392, px_right_y_header), self.BLUE)
         self.draw_text("OA %", self.font_small, (1550, px_right_y_header), self.BLUE)
-        self.draw_text("Bar", self.font_small, (1740, px_right_y_header), self.BLUE)
+        # self.draw_text("Bar", self.font_small, (1740, px_right_y_header), self.BLUE)
+
+        pygame.draw.rect(self.screen, self.RED, (bar_x, 270, 150, bar_height))
+        pygame.draw.rect(self.screen, self.ORANGE, (bar_x+149, 270, 25, bar_height))
+        pygame.draw.rect(self.screen, self.GREEN, (bar_x+173, 270, 25, bar_height))
+
+        # pygame.draw.rect(self.screen, self.GREY, (bar_x, 270, 150, bar_height), 2)
+        # pygame.draw.rect(self.screen, self.GREY, (bar_x+149, 270, 25, bar_height), 2)
+        # pygame.draw.rect(self.screen, self.GREY, (bar_x+173, 270, 25, bar_height), 2)
+        pygame.draw.rect(self.screen, self.GREY, (bar_x, 270, bar_max_width, bar_height), 2)
 
         eff_per_hour = []
         for i, hour in enumerate(range(8, 23)):
