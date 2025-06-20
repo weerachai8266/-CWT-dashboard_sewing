@@ -129,10 +129,10 @@ class Dashboard:
             self.draw_text("Part:" + self.last_qc_barcode, self.font_item, (995, 165))
 
         # Right Panel
-        self.draw_box((975, 250, 915, 810))
+        self.draw_box((975, 260, 915, 810))
         gap_right_label =   50
         px_right_x  =   985
-        px_right_y  =   300
+        px_right_y  =   310
 
         bar_x = 1675               # ตำแหน่ง X bar
         bar_height = 30            # ความสูง bar
@@ -140,14 +140,14 @@ class Dashboard:
         bar_y_start = px_right_y
 
         gab_line_x = 130
-        pygame.draw.line(self.screen, self.GREY, (px_right_x, 293), (1870, 293), 1)
-        pygame.draw.line(self.screen, self.GREY, (1120, 260), (1120, 1040), 1)                                      # Time
-        pygame.draw.line(self.screen, self.GREY, (1120 + gab_line_x * 1, 260), (1120 + gab_line_x * 1, 1040), 1);   # PD
-        pygame.draw.line(self.screen, self.GREY, (1120 + gab_line_x * 2, 260), (1120 + gab_line_x * 2, 1040), 1);   # QC
-        pygame.draw.line(self.screen, self.GREY, (1110 + gab_line_x * 3, 260), (1110 + gab_line_x * 3, 1040), 1);   # Tar
-        pygame.draw.line(self.screen, self.GREY, (1140 + gab_line_x * 4, 260), (1140 + gab_line_x * 4, 1040), 1);   # OA
+        pygame.draw.line(self.screen, self.GREY, (px_right_x, 302), (1870, 302), 1)
+        pygame.draw.line(self.screen, self.GREY, (1120, 270), (1120, 1055), 1)                                      # Time
+        pygame.draw.line(self.screen, self.GREY, (1120 + gab_line_x * 1, 270), (1120 + gab_line_x * 1, 1055), 1);   # PD
+        pygame.draw.line(self.screen, self.GREY, (1120 + gab_line_x * 2, 270), (1120 + gab_line_x * 2, 1055), 1);   # QC
+        pygame.draw.line(self.screen, self.GREY, (1110 + gab_line_x * 3, 270), (1110 + gab_line_x * 3, 1055), 1);   # Tar
+        pygame.draw.line(self.screen, self.GREY, (1140 + gab_line_x * 4, 270), (1140 + gab_line_x * 4, 1055), 1);   # OA
 
-        px_right_y_header = 260
+        px_right_y_header = 270
         self.draw_text("Time", self.font_small, (1010, px_right_y_header), self.BLUE)
         self.draw_text("Product", self.font_small, (1130, px_right_y_header), self.BLUE)
         self.draw_text("QC", self.font_small, (1290, px_right_y_header), self.BLUE)
@@ -194,12 +194,12 @@ class Dashboard:
             pygame.draw.rect(self.screen, self.GREY, (bar_x, y+8, bar_max_width, bar_height), 2)
 
         # Left Panel
-        self.draw_box((30, 250, 915, 810))
+        self.draw_box((30, 260, 915, 810))
         gab_left = 100
         px_left_x_label = 50
         px_left_x_value = 910
-        px_left_y = 265
-        px_left_y_line  =   340
+        px_left_y = 275
+        px_left_y_line  =   350
         
         if eff_per_hour:
             efficiency = sum(eff_per_hour) / len(eff_per_hour)
