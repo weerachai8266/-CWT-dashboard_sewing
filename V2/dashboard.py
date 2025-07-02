@@ -24,6 +24,7 @@ class Dashboard:
 
         self.man_plan = self.db_manager.get_man_plan()
         self.man_act = self.db_manager.get_man_act()
+        self.sum_ng = self.db_manager.get_ng()
         self.output_value_pd = self.db_manager.get_output_count_pd()
         self.hourly_output = self.db_manager.get_hourly_output_detailed()
         self.hourly_output_qc = self.db_manager.get_hourly_qc_output_detailed()
@@ -252,7 +253,7 @@ class Dashboard:
 
         self.draw_text("NG (Pcs)", self.font_title, (px_left_x_label, px_left_y+(gab_left*4)))
         pygame.draw.line(self.screen, self.GREY, (px_left_x_label, px_left_y_line+(gab_left*4)), (px_left_x_value, px_left_y_line+(gab_left*4)), 1)
-        self.draw_text("00", self.font_percent, (px_left_x_value, px_left_y+(gab_left*4)), self.RED, align="right")
+        self.draw_text(f"{self.sum_ng}", self.font_percent, (px_left_x_value, px_left_y+(gab_left*4)), self.RED, align="right")
 
         num_hours = len(self.hourly_output)
         if int(self.man_plan) > 0:
@@ -290,6 +291,7 @@ class Dashboard:
                         self.target_value = self.db_manager.get_target_from_cap()
                         self.man_plan = self.db_manager.get_man_plan()
                         self.man_act = self.db_manager.get_man_act()
+                        self.sum_ng = self.db_manager.get_ng()
                         self.output_value_pd = self.db_manager.get_output_count_pd()
                         self.eff = round(float(self.output_value_pd) / float(self.target_value) * 100, 2) if float(self.target_value) != 0 else 0.00
                         self.hourly_output = self.db_manager.get_hourly_output()

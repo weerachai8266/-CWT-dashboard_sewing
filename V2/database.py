@@ -3,9 +3,11 @@ import sys
 from datetime import datetime, timedelta, time
 
 BREAK_PERIODS = [
+    (time(8, 0), time(8, 10)),
     (time(10, 0), time(10, 10)),
     (time(12, 10), time(13, 10)),
     (time(15, 0), time(15, 10)),
+    (time(16, 50), time(17, 0)),
     (time(17, 0), time(17, 30)),
 ]
 
@@ -30,9 +32,9 @@ class DatabaseManager:
     def __init__(self):
         try:
             self.db = pymysql.connect(
-                host="192.168.0.14",
-                user="sew_py",
-                password="cwt258963",
+                host="192.168.0.44",
+                user="user",
+                password="user",
                 database="automotive"
             )
             self.cursor = self.db.cursor()
@@ -65,7 +67,7 @@ class DatabaseManager:
 
     def get_target_from_cap(self):
         try:
-            sql = "SELECT `3rd` FROM sewing_cap ORDER BY created_at DESC LIMIT 1"
+            sql = "SELECT `3rd` FROM sewing_target ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -75,7 +77,7 @@ class DatabaseManager:
 
     def get_man_plan(self):
         try:
-            sql = "SELECT `3rd_plan` FROM sewing_man ORDER BY created_at DESC LIMIT 1"
+            sql = "SELECT `3rd_plan` FROM sewing_pman ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -85,7 +87,7 @@ class DatabaseManager:
 
     def get_man_act(self):
         try:
-            sql = "SELECT `3rd_act` FROM sewing_man ORDER BY created_at DESC LIMIT 1"
+            sql = "SELECT `3rd_act` FROM sewing_aman ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -111,6 +113,16 @@ class DatabaseManager:
             return str(result[0]) if result and result[0] is not None else "0"
         except Exception as e:
             print(f"Error fetching output count: {e}")
+            return "0"
+
+    def get_ng(self):
+        try:
+            sql = "SELECT sum(`qty`) FROM `qc_ng` WHERE `process` = '3RD & ARM' AND DATE(created_at) = CURDATE() LIMIT 1"
+            self.cursor.execute(sql)
+            result = self.cursor.fetchone()
+            return str(result[0]) if result and result[0] is not None else "0"
+        except Exception as e:
+            print(f"Error fetching NG count: {e}")
             return "0"
 
     def get_hourly_output(self):

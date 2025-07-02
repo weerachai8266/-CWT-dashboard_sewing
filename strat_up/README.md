@@ -45,6 +45,52 @@ ip a
 ~~~
 ควรเห็นว่า eth0 มี IP ที่คุณตั้งไว้ เช่น 192.168.0.200
 
+### สร้าง Systemd Service File
+~~~bash
+sudo nano /etc/systemd/system/monitor.service
+~~~
+
+ - เนื้อหาไฟล์ monitor.service
+
+~~~bash
+[Unit]
+Description=Sewing Machine Monitor
+After=network.target home.mount
+
+[Service]
+ExecStart=/usr/bin/python3 /home/cwt/sew/V2/main-v2.1.py
+WorkingDirectory=/home/cwt/sew/V2
+Restart=always
+User=cwt
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
+~~~
+
+ - รีโหลดและเปิดใช้งาน service
+~~~bash
+sudo systemctl daemon-reexec
+sudo systemctl daemon-reload
+sudo systemctl enable sewing.service
+sudo systemctl start sewing.service
+~~~
+ - ตรวจสอบว่า service ทำงานหรือไม่
+~~~bash
+sudo systemctl status sewing.service
+~~~
+
+## ปิดโปรแกรมที่เปิดอยู่
+ 1. หาค่า PID ของโปรแกรม:
+~~~bash
+ps aux | grep main-v2.1.py
+~~~
+
+ 2. Kill process ด้วย PID:
+ ~~~bash
+ kill 1234
+ ~~~
+
 ### 📝 หมายเหตุ:
   ถ้าคุณต้องการตั้งค่า wlan0 แบบ static → ก็สร้างไฟล์ /etc/systemd/network/20-wlan0.network แยกต่างหาก โดยเปลี่ยน Name=wlan0
   อย่าตั้ง static IP ซ้ำกับ DHCP เดิมใน network มิฉะนั้นจะชน
