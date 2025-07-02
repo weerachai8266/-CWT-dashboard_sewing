@@ -41,7 +41,19 @@ class DatabaseManager:
             print("✅ เชื่อมต่อฐานข้อมูลสำเร็จ")
         except Exception as e:
             print(f"❌ เชื่อมต่อฐานข้อมูลล้มเหลว: {e}")
-            sys.exit(1)
+            # sys.exit(1)
+            self.db = None
+            self.cursor = None
+
+    def is_connected(self):
+        # ตรวจสอบสถานะการเชื่อมต่อแบบง่าย
+        try:
+            if self.db is None or self.cursor is None:
+                return False
+            self.db.ping(reconnect=True)
+            return True
+        except Exception:
+            return False
 
     def insert_pd(self, item_code):
         item_code = item_code.upper()

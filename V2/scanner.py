@@ -124,6 +124,13 @@ class Scanner:
             print(f"❌ แปลงคีย์ผิดพลาด: {e}")
             return None
 
+    def is_connected(self):
+        # ตรวจสอบว่า device path ของ scanner นี้ยังมีอยู่ในระบบหรือไม่
+        try:
+            return os.path.exists(self.device.path)
+        except Exception:
+            return False
+
     def cleanup(self):
         self._stop_event.set()
         if hasattr(self, 'device') and self.device:

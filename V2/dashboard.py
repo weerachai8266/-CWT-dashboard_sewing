@@ -104,14 +104,62 @@ class Dashboard:
         self.screen.fill(self.BLACK)
 
         # Header
-        self.draw_box((30, 20, 1300, 100))
+        self.draw_box((30, 20, 915, 100))
         self.draw_text("Line Name : 3RD", self.font_title, (50, 45))
 
+        x_start = 975
+        # box 2
+        gap = 25
+        box_width = 445
+
+        # box 3
+        # gap = 20
+        # box_width = 300
+
         # DateTime
-        self.draw_box((1350, 20, 538, 100))
+        self.draw_box((x_start, 20, box_width, 100))
         now = datetime.now()
-        self.draw_text(" DATE : " + now.strftime("%d/%m/%Y"), self.font_small, (1380, 35))
-        self.draw_text(" TIME  : " + now.strftime("%H:%M:%S"), self.font_small, (1380, 75))
+        self.draw_text(" DATE : " + now.strftime("%d/%m/%Y"), self.font_small, (990, 35))
+        self.draw_text(" TIME  : " + now.strftime("%H:%M:%S"), self.font_small, (990, 75))
+
+        # status
+        status_x = x_start + box_width + gap
+        self.draw_box((status_x, 20, box_width, 100))        # box 3 : box_width - 15
+        self.draw_text("Status", pygame.font.SysFont("Arial", 20), (status_x + 20, 30), self.BLUE)
+
+        # ตรวจสอบสถานะ db
+        if self.db_manager and self.db_manager.is_connected():
+            db_status = "Database: Connected"
+            db_color = self.GREEN
+        else:
+            db_status = "Database: Disconnected"
+            db_color = self.RED        
+        self.draw_text(db_status, pygame.font.SysFont("Arial", 18), (status_x + 20, 55), db_color)
+
+        # ตรวจสอบสถานะ scanner1
+        if self.scanner1 and self.scanner1.is_connected():
+            scanner1_status = "Scanner1: Connected"
+            scanner1_color = self.GREEN
+        else:
+            scanner1_status = "Scanner1: Missing"
+            scanner1_color = self.RED
+        self.draw_text(scanner1_status, pygame.font.SysFont("Arial", 18), (status_x + 20, 75), scanner1_color)
+
+        # ตรวจสอบสถานะ scanner2
+        if self.scanner2 and self.scanner2.is_connected():
+            scanner2_status = "Scanner2: Connected"
+            scanner2_color = self.GREEN
+        else:
+            scanner2_status = "Scanner2: Missing"
+            scanner2_color = self.RED
+        self.draw_text(scanner2_status, pygame.font.SysFont("Arial", 18), (status_x + 20, 95), scanner2_color)
+
+        # info
+        # info_x = x_start + box_width + gap + box_width - 15 + gap
+        # self.draw_box((info_x, 20, box_width-10, 100))
+        # self.draw_text("Info", pygame.font.SysFont("Arial", 20), (info_x + 20, 30), self.BLUE)
+        # self.draw_text("Line: A", pygame.font.SysFont("Arial", 18), (info_x + 20, 60), self.GREY)
+        # self.draw_text("User: weerachai8266", pygame.font.SysFont("Arial", 18), (info_x + 20, 90), self.GREY)
 
         # Barcode Display Production
         self.draw_box((30, 140, 915, 100))
