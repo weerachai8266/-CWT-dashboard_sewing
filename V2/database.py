@@ -32,10 +32,10 @@ def working_minutes_in_hour(hour):
 class DatabaseManager:
     def __init__(self, line_name):
         # โหลด mapping
-        with open("V2/line_mapping.json", encoding="utf-8") as f:
-            self.line_mapping = json.load(f)
+        with open("mapping.json", encoding="utf-8") as f:
+            self.mapping = json.load(f)
         self.line_name = line_name
-        self.tables = self.line_mapping[self.line_name]
+        self.tables = self.mapping[self.line_name]
 
         # เชื่อมต่อฐานข้อมูล
         try:
@@ -216,7 +216,7 @@ class DatabaseManager:
         return hourly_output
 
     def add_index_created_at(self, table_name):
-        """เพิ่ม index ที่ฟิลด์ created_at ของตารางที่กำหนด"""
+        # """เพิ่ม index ที่ฟิลด์ created_at ของตารางที่กำหนด"""   
         sql = f"ALTER TABLE {table_name} ADD INDEX idx_created_at (created_at);"
         try:
             self.cursor.execute(sql)
@@ -229,7 +229,7 @@ class DatabaseManager:
                 print(f"❌ เพิ่ม index ไม่สำเร็จ: {e}")
 
     def add_composite_index(self, table_name, fields, index_name):
-        """เพิ่ม composite index จากหลายฟิลด์"""
+        # """เพิ่ม composite index จากหลายฟิลด์"""
         fields_str = ", ".join(fields)
         sql = f"ALTER TABLE {table_name} ADD INDEX {index_name} ({fields_str});"
         try:
@@ -252,11 +252,3 @@ class DatabaseManager:
         except Exception as e:
             print(f"❌ ปิดการเชื่อมต่อฐานข้อมูลผิดพลาด: {e}")
 
-if __name__ == "__main__":
-    dbm = DatabaseManager(line_name="F/C")
-    if dbm.is_connected():
-        dbm.add_index_created_at(f"sewing_{dbm.line_name}")
-        dbm.add_index_created_at(f"qc_{dbm.line_name}")
-        dbm.add_index_created_at("qc_ng")
-        dbm.add_composite_index("qc_ng", ["process", "created_at"], "idx_process_created_at")
-        dbm.close()
