@@ -1,6 +1,7 @@
 import pymysql
 import sys
 from datetime import datetime, timedelta, time
+import json
 
 BREAK_PERIODS = [
     (time(8, 0), time(8, 10)),
@@ -29,7 +30,14 @@ def working_minutes_in_hour(hour):
     return count
 
 class DatabaseManager:
-    def __init__(self):
+    def __init__(self, line_name):
+        # โหลด mapping
+        with open("V2/line_mapping.json", encoding="utf-8") as f:
+            self.line_mapping = json.load(f)
+        self.line_name = line_name
+        self.tables = self.line_mapping[self.line_name]
+
+        # เชื่อมต่อฐานข้อมูล
         try:
             self.db = pymysql.connect(
                 host="192.168.0.44",
@@ -58,7 +66,7 @@ class DatabaseManager:
     def insert_pd(self, item_code):
         item_code = item_code.upper()
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        sql = "INSERT INTO sewing_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
+        sql = f"INSERT INTO {self.tables['sewing_table']} (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
         try:
             self.cursor.execute(sql, (item_code, now))
             self.db.commit()
@@ -69,7 +77,7 @@ class DatabaseManager:
     def insert_qc(self, item_code):
         item_code = item_code.upper()
         now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        sql = "INSERT INTO qc_3rd (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
+        sql = f"INSERT INTO {self.tables['qc_table']} (item, qty, status, created_at) VALUES (%s, 1, 10, %s)"
         try:
             self.cursor.execute(sql, (item_code, now))
             self.db.commit()
@@ -79,7 +87,7 @@ class DatabaseManager:
 
     def get_target_from_cap(self):
         try:
-            sql = "SELECT `3rd` FROM sewing_target ORDER BY created_at DESC LIMIT 1"
+            sql = f"SELECT {self.tables['target_field']} FROM sewing_target ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -89,7 +97,7 @@ class DatabaseManager:
 
     def get_man_plan(self):
         try:
-            sql = "SELECT `3rd_plan` FROM sewing_pman ORDER BY created_at DESC LIMIT 1"
+            sql = f"SELECT `{self.tables['man_plan_field']}` FROM sewing_pman ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -99,7 +107,7 @@ class DatabaseManager:
 
     def get_man_act(self):
         try:
-            sql = "SELECT `3rd_act` FROM sewing_aman ORDER BY created_at DESC LIMIT 1"
+            sql = f"SELECT `{self.tables['man_act_field']}` FROM sewing_aman ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -109,7 +117,7 @@ class DatabaseManager:
 
     def get_output_count_pd(self):
         try:
-            sql = "SELECT COUNT(`qty`) FROM `sewing_3rd` WHERE DATE(created_at) = CURDATE() LIMIT 1"
+            sql = f"SELECT COUNT(`qty`) FROM `{self.tables['sewing_table']}` WHERE DATE(created_at) = CURDATE()"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -119,7 +127,7 @@ class DatabaseManager:
 
     def get_output_count_qc(self):
         try:
-            sql = "SELECT COUNT(`qty`) FROM `qc_3rd` WHERE DATE(created_at) = CURDATE() LIMIT 1"
+            sql = f"SELECT COUNT(`qty`) FROM `{self.tables['qc_table']}` WHERE DATE(created_at) = CURDATE()"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -129,7 +137,7 @@ class DatabaseManager:
 
     def get_ng(self):
         try:
-            sql = "SELECT sum(`qty`) FROM `qc_ng` WHERE `process` = '3RD & ARM' AND DATE(created_at) = CURDATE() LIMIT 1"
+            sql = f"SELECT sum(`qty`) FROM `qc_ng` WHERE `process` = '{self.tables['qc_ng_field']}' AND DATE(created_at) = CURDATE()"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -138,9 +146,9 @@ class DatabaseManager:
             return "0"
 
     def get_hourly_output(self):
-        sql = """
+        sql = f"""
             SELECT HOUR(created_at) AS hr, COUNT(*) AS pcs
-            FROM sewing_3rd
+            FROM {self.tables['sewing_table']}
             WHERE DATE(created_at) = CURDATE()
             GROUP BY hr
             ORDER BY hr
@@ -157,9 +165,9 @@ class DatabaseManager:
     def get_hourly_output_detailed(self, for_date=None):
         if not for_date:
             for_date = datetime.now().strftime("%Y-%m-%d")
-        sql = """
+        sql = f"""
             SELECT HOUR(created_at), MINUTE(created_at)
-            FROM sewing_3rd
+            FROM {self.tables['sewing_table']}
             WHERE DATE(created_at) = %s
         """
         self.cursor.execute(sql, (for_date,))
@@ -173,9 +181,9 @@ class DatabaseManager:
         return hourly_output
 
     def get_hourly_qc_output(self):
-        sql = """
+        sql = f"""
             SELECT HOUR(created_at) AS hr, COUNT(*) AS pcs
-            FROM qc_3rd
+            FROM {self.tables['qc_table']}
             WHERE DATE(created_at) = CURDATE()
             GROUP BY hr
             ORDER BY hr
@@ -192,9 +200,9 @@ class DatabaseManager:
     def get_hourly_qc_output_detailed(self, for_date=None):
         if not for_date:
             for_date = datetime.now().strftime("%Y-%m-%d")
-        sql = """
+        sql = f"""
             SELECT HOUR(created_at), MINUTE(created_at)
-            FROM qc_3rd
+            FROM {self.tables['qc_table']}
             WHERE DATE(created_at) = %s
         """
         self.cursor.execute(sql, (for_date,))
@@ -207,6 +215,33 @@ class DatabaseManager:
         hourly_output = {hr: len(mns) for hr, mns in hourly_minutes.items()}
         return hourly_output
 
+    def add_index_created_at(self, table_name):
+        """เพิ่ม index ที่ฟิลด์ created_at ของตารางที่กำหนด"""
+        sql = f"ALTER TABLE {table_name} ADD INDEX idx_created_at (created_at);"
+        try:
+            self.cursor.execute(sql)
+            self.db.commit()
+            print(f"✅ เพิ่ม index ที่ {table_name}.created_at สำเร็จ")
+        except pymysql.err.InternalError as e:
+            if "Duplicate key name" in str(e):
+                print(f"ℹ️ {table_name}.created_at มี index นี้อยู่แล้ว")
+            else:
+                print(f"❌ เพิ่ม index ไม่สำเร็จ: {e}")
+
+    def add_composite_index(self, table_name, fields, index_name):
+        """เพิ่ม composite index จากหลายฟิลด์"""
+        fields_str = ", ".join(fields)
+        sql = f"ALTER TABLE {table_name} ADD INDEX {index_name} ({fields_str});"
+        try:
+            self.cursor.execute(sql)
+            self.db.commit()
+            print(f"✅ เพิ่ม composite index {index_name} สำเร็จ")
+        except pymysql.err.InternalError as e:
+            if "Duplicate key name" in str(e):
+                print(f"ℹ️ {table_name}.{index_name} มี index นี้อยู่แล้ว")
+            else:
+                print(f"❌ เพิ่ม composite index ไม่สำเร็จ: {e}")
+
     def close(self):
         try:
             if hasattr(self, 'cursor') and self.cursor:
@@ -216,3 +251,12 @@ class DatabaseManager:
             print("✅ ปิดการเชื่อมต่อฐานข้อมูล")
         except Exception as e:
             print(f"❌ ปิดการเชื่อมต่อฐานข้อมูลผิดพลาด: {e}")
+
+if __name__ == "__main__":
+    dbm = DatabaseManager(line_name="F/C")
+    if dbm.is_connected():
+        dbm.add_index_created_at(f"sewing_{dbm.line_name}")
+        dbm.add_index_created_at(f"qc_{dbm.line_name}")
+        dbm.add_index_created_at("qc_ng")
+        dbm.add_composite_index("qc_ng", ["process", "created_at"], "idx_process_created_at")
+        dbm.close()
