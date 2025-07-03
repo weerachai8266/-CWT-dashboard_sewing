@@ -216,31 +216,56 @@ class DatabaseManager:
         return hourly_output
 
     def add_index_created_at(self, table_name):
-        # """เพิ่ม index ที่ฟิลด์ created_at ของตารางที่กำหนด"""   
-        sql = f"ALTER TABLE {table_name} ADD INDEX idx_created_at (created_at);"
+        index_name = f"idx_{table_name}_created_at"
+
+        # เช็กก่อนว่ามี index นี้แล้วหรือยัง
+        check_sql = """
+            SELECT COUNT(1)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE table_schema = DATABASE()
+            AND table_name = %s
+            AND index_name = %s
+        """
+        self.cursor.execute(check_sql, (table_name, index_name))
+        exists = self.cursor.fetchone()[0]
+
+        if exists:
+            print(f"ℹ️ {table_name}.{index_name} มีอยู่แล้ว")
+            return
+
+        # ถ้ายังไม่มี index ให้เพิ่มเข้าไป
+        sql = f"ALTER TABLE `{table_name}` ADD INDEX `{index_name}` (`created_at`);"
         try:
             self.cursor.execute(sql)
             self.db.commit()
-            print(f"✅ เพิ่ม index ที่ {table_name}.created_at สำเร็จ")
-        except pymysql.err.InternalError as e:
-            if "Duplicate key name" in str(e):
-                print(f"ℹ️ {table_name}.created_at มี index นี้อยู่แล้ว")
-            else:
-                print(f"❌ เพิ่ม index ไม่สำเร็จ: {e}")
+            print(f"✅ เพิ่ม index {index_name} สำเร็จที่ {table_name}")
+        except pymysql.MySQLError as e:
+            print(f"❌ เพิ่ม index ไม่สำเร็จ: {e}")
 
     def add_composite_index(self, table_name, fields, index_name):
-        # """เพิ่ม composite index จากหลายฟิลด์"""
-        fields_str = ", ".join(fields)
-        sql = f"ALTER TABLE {table_name} ADD INDEX {index_name} ({fields_str});"
+        # ตรวจสอบก่อนว่ามี index นี้แล้วไหม
+        check_sql = """
+            SELECT COUNT(1)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE table_schema = DATABASE()
+            AND table_name = %s
+            AND index_name = %s
+        """
+        self.cursor.execute(check_sql, (table_name, index_name))
+        exists = self.cursor.fetchone()[0]
+
+        if exists:
+            print(f"ℹ️ {table_name}.{index_name} มีอยู่แล้ว")
+            return
+
+        fields_str = ", ".join([f"`{field}`" for field in fields])
+        sql = f"ALTER TABLE `{table_name}` ADD INDEX `{index_name}` ({fields_str});"
         try:
             self.cursor.execute(sql)
             self.db.commit()
-            print(f"✅ เพิ่ม composite index {index_name} สำเร็จ")
-        except pymysql.err.InternalError as e:
-            if "Duplicate key name" in str(e):
-                print(f"ℹ️ {table_name}.{index_name} มี index นี้อยู่แล้ว")
-            else:
-                print(f"❌ เพิ่ม composite index ไม่สำเร็จ: {e}")
+            print(f"✅ เพิ่ม composite index {index_name} สำเร็จที่ {table_name}")
+        except pymysql.MySQLError as e:
+            print(f"❌ เพิ่ม composite index ไม่สำเร็จ: {e}")
 
     def close(self):
         try:
