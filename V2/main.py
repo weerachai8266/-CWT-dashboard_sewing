@@ -15,7 +15,6 @@ if __name__ == '__main__':
             db_manager.add_index_created_at(db_manager.tables["qc_table"])
             db_manager.add_index_created_at("qc_ng")
             db_manager.add_composite_index("qc_ng", ["process", "created_at"], "idx_process_created_at")
-            # db_manager.close()
 
         try:
             scanner1 = Scanner(device_path='/dev/input/scanner1')

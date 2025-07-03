@@ -105,7 +105,9 @@ class Dashboard:
 
         # Header
         self.draw_box((30, 20, 915, 100))
-        self.draw_text("Line Name : 3RD", self.font_title, (50, 45))
+        # self.draw_text(f"Line Name : {self.db_manager.line_name}", self.font_title, (50, 45))
+        self.draw_text(f"Line Name : {self.db_manager.mapping[self.db_manager.line_name].get('display_name', self.db_manager.line_name)}",self.font_title, (50, 45))
+
 
         x_start = 975
         # box 2
