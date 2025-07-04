@@ -1,6 +1,7 @@
 import pygame
 from datetime import datetime
 from database import working_minutes_in_hour
+import socket
 
 class Dashboard:
     def __init__(self, db_manager, scanner1, scanner2):
@@ -100,13 +101,30 @@ class Dashboard:
             self.qc_error_message = f"ไม่บันทึก กรุณาสแกนใหม่ ({barcode})"
             self.qc_show_error = True
 
+    def get_ip_address(self):
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("192.168.0.2", 80))  # ใช้ gateway ของคุณ
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "0.0.0.0"
+
+    def is_network_connected(self):
+        try:
+            ip = self.get_ip_address()
+            return not ip.startswith("127.") and ip != "0.0.0.0"
+        except:
+            return False
+
     def draw_dashboard(self):
         self.screen.fill(self.BLACK)
 
         # Header
         self.draw_box((30, 20, 915, 100))
-        # self.draw_text(f"Line Name : {self.db_manager.line_name}", self.font_title, (50, 45))
-        self.draw_text(f"Line Name : {self.db_manager.mapping[self.db_manager.line_name].get('display_name', self.db_manager.line_name)}",self.font_title, (50, 45))
+        self.draw_text(f"Line Name : {self.db_manager.line_name}", self.font_title, (50, 45))
+        # self.draw_text(f"Line Name : {self.db_manager.mapping[self.db_manager.line_name].get('display_name', self.db_manager.line_name)}",self.font_title, (50, 45))
 
 
         x_start = 975
@@ -155,6 +173,17 @@ class Dashboard:
             scanner2_status = "Scanner2: Missing"
             scanner2_color = self.RED
         self.draw_text(scanner2_status, pygame.font.SysFont("Arial", 18), (status_x + 20, 95), scanner2_color)
+
+        # network connetcion
+        if self.is_network_connected():
+            ip = self.get_ip_address()
+            network_status = f"Network: Connected"
+            network_color = self.GREEN
+            self.draw_text(f"IP: {ip}", pygame.font.SysFont("Arial", 18), (status_x + 220, 75), network_color)
+        else:
+            network_status = "Network: Disconnected"
+            network_color = self.RED
+        self.draw_text(network_status, pygame.font.SysFont("Arial", 18), (status_x + 200 + 20, 55), network_color)
 
         # info
         # info_x = x_start + box_width + gap + box_width - 15 + gap
