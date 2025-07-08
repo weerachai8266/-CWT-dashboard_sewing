@@ -95,6 +95,16 @@ class DatabaseManager:
             print(f"Error fetching cap target: {e}")
             return "0"
 
+    def get_productivity_plan(self):
+        try:
+            sql = f"SELECT {self.tables['target_field']} FROM sewing_productivity_plan ORDER BY created_at DESC LIMIT 1"
+            self.cursor.execute(sql)
+            result = self.cursor.fetchone()
+            return str(result[0]) if result and result[0] is not None else "0"
+        except Exception as e:
+            print(f"Error fetching productivity plan: {e}")
+            return "0"
+
     def get_man_plan(self):
         try:
             sql = f"SELECT `{self.tables['man_plan_field']}` FROM sewing_pman ORDER BY created_at DESC LIMIT 1"
@@ -117,7 +127,7 @@ class DatabaseManager:
 
     def get_output_count_pd(self):
         try:
-            sql = f"SELECT COUNT(`qty`) FROM `{self.tables['sewing_table']}` WHERE DATE(created_at) = CURDATE()"
+            sql = f"SELECT COUNT(1) FROM `{self.tables['sewing_table']}` WHERE DATE(created_at) = CURDATE()"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -127,7 +137,7 @@ class DatabaseManager:
 
     def get_output_count_qc(self):
         try:
-            sql = f"SELECT COUNT(`qty`) FROM `{self.tables['qc_table']}` WHERE DATE(created_at) = CURDATE()"
+            sql = f"SELECT COUNT(1) FROM `{self.tables['qc_table']}` WHERE DATE(created_at) = CURDATE()"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
