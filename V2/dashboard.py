@@ -12,6 +12,7 @@ class Dashboard:
         self.UPDATE_EVENT = pygame.USEREVENT + 1
         pygame.time.set_timer(self.UPDATE_EVENT, 1000)
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        pygame.mouse.set_visible(False)  # ซ่อนเมาส์
         pygame.display.set_caption("Production Dashboard")
         self.width, self.height = self.screen.get_size()
         self.setup_fonts()
@@ -30,6 +31,7 @@ class Dashboard:
         self.hourly_output = self.db_manager.get_hourly_output_detailed()
         self.hourly_output_qc = self.db_manager.get_hourly_qc_output_detailed()
         self.target_value = int(self.db_manager.get_target_from_cap())
+        self.productivity_value = float(self.db_manager.get_productivity_plan())
 
     def setup_fonts(self):
         self.font_header = pygame.font.SysFont('Arial', 50, bold=True)
@@ -179,11 +181,11 @@ class Dashboard:
             ip = self.get_ip_address()
             network_status = f"Network: Connected"
             network_color = self.GREEN
-            self.draw_text(f"IP: {ip}", pygame.font.SysFont("Arial", 18), (status_x + 220, 75), network_color)
+            self.draw_text(f"IP: {ip}", pygame.font.SysFont("Arial", 18), (status_x + 230, 75), network_color)
         else:
             network_status = "Network: Disconnected"
             network_color = self.RED
-        self.draw_text(network_status, pygame.font.SysFont("Arial", 18), (status_x + 200 + 20, 55), network_color)
+        self.draw_text(network_status, pygame.font.SysFont("Arial", 18), (status_x + 230, 55), network_color)
 
         # info
         # info_x = x_start + box_width + gap + box_width - 15 + gap
@@ -229,7 +231,7 @@ class Dashboard:
 
         px_right_y_header = 270
         self.draw_text("Time", self.font_small, (1010, px_right_y_header), self.BLUE)
-        self.draw_text("Product", self.font_small, (1130, px_right_y_header), self.BLUE)
+        self.draw_text("Product", self.font_small, (1127, px_right_y_header), self.BLUE)
         self.draw_text("QC", self.font_small, (1290, px_right_y_header), self.BLUE)
         self.draw_text("Target", self.font_small, (1392, px_right_y_header), self.BLUE)
         self.draw_text("OA %", self.font_small, (1550, px_right_y_header), self.BLUE)
@@ -346,7 +348,9 @@ class Dashboard:
 
         self.draw_text("Productivity Plan", self.font_title, (px_left_x_label, px_left_y+(gab_left*5)))
         pygame.draw.line(self.screen, self.GREY, (px_left_x_label, px_left_y_line+(gab_left*5)), (px_left_x_value, px_left_y_line+(gab_left*5)), 1)
-        self.draw_text(f"{productivity_plan:.1f}", self.font_percent, (px_left_x_value, px_left_y+(gab_left*5)), self.GREEN, align="right")
+        # self.draw_text(f"{productivity_plan:.1f}", self.font_percent, (px_left_x_value, px_left_y+(gab_left*5)), self.GREEN, align="right")
+        # self.draw_text(f"{self.db_manager.tables['productivity_plan']}", self.font_percent, (px_left_x_value, px_left_y+(gab_left*5)), self.GREEN, align="right")
+        self.draw_text(f"{self.productivity_value}", self.font_percent, (px_left_x_value, px_left_y+(gab_left*5)), self.GREEN, align="right")
 
         self.draw_text("Productivity Act", self.font_title, (px_left_x_label, px_left_y+(gab_left*6)))
         pygame.draw.line(self.screen, self.GREY, (px_left_x_label, px_left_y_line+(gab_left*6)), (px_left_x_value, px_left_y_line+(gab_left*6)), 1)
