@@ -72,12 +72,12 @@ WantedBy=multi-user.target
 ~~~bash
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
-sudo systemctl enable sewing.service
-sudo systemctl start sewing.service
+sudo systemctl enable monitor.service
+sudo systemctl start monitor.service
 ~~~
  - ตรวจสอบว่า service ทำงานหรือไม่
 ~~~bash
-sudo systemctl status sewing.service
+sudo systemctl status monitor.service
 ~~~
 
 ## ปิดโปรแกรมที่เปิดอยู่
