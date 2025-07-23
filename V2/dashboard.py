@@ -41,7 +41,7 @@ class Dashboard:
         self.font_small = pygame.font.SysFont('Arial', 30, bold=True)
         self.font_mini = pygame.font.SysFont('Arial', 15, bold=True)
         self.font_item = pygame.font.SysFont('Consolas', 60, bold=True)
-        self.font_TH = pygame.font.SysFont('FreeSerif', 60, bold=True) # TH
+        self.font_TH = pygame.font.SysFont('FreeSerif', 30, bold=True) # TH
 
     def setup_colors(self):
         self.BLACK = (0, 0, 0)
@@ -84,7 +84,7 @@ class Dashboard:
         self.screen.blit(surface, rect)
 
     def process_pd_scan(self, barcode):
-        if 12 < len(barcode) <= 17:
+        if 2< len(barcode) <= 30:
             self.last_pd_barcode = barcode
             self.db_manager.insert_pd(barcode)
             self.show_error = False
@@ -94,7 +94,7 @@ class Dashboard:
             self.show_error = True
 
     def process_qc_scan(self, barcode):
-        if barcode.startswith("NI") and len(barcode) > 2:
+        if barcode.startswith("NI") and len(barcode) > 12:
             self.last_qc_barcode = barcode
             self.db_manager.insert_qc(barcode)
             self.qc_show_error = False
@@ -125,8 +125,8 @@ class Dashboard:
 
         # Header
         self.draw_box((30, 20, 915, 100))
-        self.draw_text(f"Line Name : {self.db_manager.line_name}", self.font_title, (50, 45))
-        # self.draw_text(f"Line Name : {self.db_manager.mapping[self.db_manager.line_name].get('display_name', self.db_manager.line_name)}",self.font_title, (50, 45))
+        # self.draw_text(f"Line Name : {self.db_manager.line_name}", self.font_title, (50, 45))
+        self.draw_text(f"Line Name : {self.db_manager.mapping[self.db_manager.line_name].get('display_name', self.db_manager.line_name)}",self.font_title, (50, 45))
 
 
         x_start = 975
