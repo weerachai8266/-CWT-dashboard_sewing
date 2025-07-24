@@ -24,8 +24,8 @@ class Scanner:
             self.device.grab()  # จอง device ไว้ใช้งาน
 
             import fcntl
-            flag = fcntl.fcntl(self.device.fd, fcntl.F_GETFL)
-            fcntl.fcntl(self.device.fd, fcntl.F_SETFL, flag | os.O_NONBLOCK)
+            flag = fcntl.fcntl(self.device.fd, fcntl.F_GETFL)                   # อ่าน flags ปัจจุบัน
+            fcntl.fcntl(self.device.fd, fcntl.F_SETFL, flag | os.O_NONBLOCK)    # ตั้งค่าเป็น non-blocking mode
 
             print(f"✅ เริ่มใช้งานอุปกรณ์สำเร็จ")
         except Exception as e:
@@ -33,12 +33,12 @@ class Scanner:
             print("ลองรันโปรแกรมด้วย sudo")
             os._exit(1)
 
-        self.buffer = ''
-        self.last_key_time = time.monotonic()
-        self.barcode_queue = queue.Queue()
-        self._stop_event = threading.Event()
-        self.thread = threading.Thread(target=self._barcode_loop, daemon=True)
-        self.thread.start()
+        self.buffer = ''                        # เก็บข้อมูลที่อ่านได้
+        self.last_key_time = time.monotonic()   # เวลาที่อ่านคีย์ล่าสุด
+        self.barcode_queue = queue.Queue()      # คิวสำหรับเก็บบาร์โค้ดที่อ่านได้
+        self._stop_event = threading.Event()    # อีเวนต์สำหรับหยุดการทำงานของ thread
+        self.thread = threading.Thread(target=self._barcode_loop, daemon=True)  # สร้าง thread สำหรับอ่านบาร์โค้ด
+        self.thread.start()                     # เริ่ม thread ทันที
 
     def find_scanner(self, device_index=None):
         devices = [InputDevice(path) for path in list_devices()]
@@ -81,47 +81,89 @@ class Scanner:
 
     def _barcode_loop(self):
         shift = False
-        self.last_key_time = time.monotonic()
-        buffer_timeout = 0.15  # วินาที (เช่น 150ms)
+        last_key_time = time.monotonic()
+
+        # เพิ่ม timeout ให้นานขึ้นสำหรับสแกนเนอร์ไร้สาย
+        inter_char_timeout = 3  # เพิ่มจาก 0.5 เป็น 3 วินาที
+
+        # เพิ่มตัวแปรเพื่อตรวจสอบสถานะการสแกน
+        scan_start_time = None
+        scanning_active = False
 
         while not self._stop_event.is_set():
-            try:
-                now = time.monotonic()
-                # ถ้าเกิน timeout แล้วยังมี buffer อยู่ → push ไป
-                if self.buffer and now - self.last_key_time > buffer_timeout:
-                    # scanner น่าจะจบการยิง
-                    self.barcode_queue.put(self.buffer)
-                    self.buffer = ''
+            # 1. ตรวจสอบ Timeout ก่อน: ถ้าเวลาผ่านไปนานนับจากคีย์ล่าสุด ให้ส่งข้อมูลใน buffer ออกไป
+            now = time.monotonic()
 
-                r, _, _ = select.select([self.device.fd], [], [], 0.1)
-                if not r:
-                    continue
-                    
-                for event in self.device.read():
-                    if event.type == ecodes.EV_KEY:
-                        if event.code in (ecodes.KEY_LEFTSHIFT, ecodes.KEY_RIGHTSHIFT):
-                            shift = event.value == 1
-                            continue
-
-                        if event.value in (1, 2):  # Key Down / Repeat
-                            self.last_key_time = time.monotonic()
-
-                            if event.code == ecodes.KEY_ENTER:
-                                if self.buffer:
-                                    self.barcode_queue.put(self.buffer)
-                                    self.buffer = ''
-                            else:
-                                try:
-                                    key = ecodes.KEY[event.code].replace('KEY_', '')
-                                    char = self.translate_key(key, shift)
-                                    if char:
-                                        self.buffer += char
-                                except Exception:
-                                    pass
-            except Exception:
+            # ตรวจสอบ timeout เฉพาะเมื่อมีข้อมูลใน buffer และไม่ได้สแกนอยู่
+            if self.buffer and (now - last_key_time > inter_char_timeout):
+                print(f"[DEBUG] Timeout - sending buffer: '{self.buffer}'")  # Debug line
+                self.barcode_queue.put(self.buffer)
                 self.buffer = ''
-                continue
+                scanning_active = False
 
+            # 2. รอ event ใหม่ โดยใช้ timeout สั้นๆ เพื่อให้ loop ตอบสนองได้เร็ว
+            # ใช้ timeout ยาวขึ้นเพื่อลด CPU usage และให้เวลา scanner ส่งข้อมูล
+            r, _, _ = select.select([self.device.fd], [], [], 0.1)  # เพิ่มจาก 0.05 เป็น 0.1
+            if not r:
+                continue  # ไม่มี event ใหม่, วนกลับไปเช็ค timeout ต่อ
+
+            try:
+                events = list(self.device.read())  # อ่านทุก event ที่มี
+                if not events:
+                    continue
+
+                # มี event เข้ามา แสดงว่ากำลังสแกนอยู่
+                scanning_active = True
+                last_key_time = now  # อัปเดตเวลาล่าสุด
+
+                # 3. เมื่อมี event เข้ามา ให้อ่านและประมวลผลทั้งหมด
+                for event in events:
+                    if event.type != ecodes.EV_KEY:
+                        continue
+
+                    # จัดการ Shift keys
+                    if event.code in (ecodes.KEY_LEFTSHIFT, ecodes.KEY_RIGHTSHIFT):
+                        shift = event.value in (1, 2)
+                        continue
+
+                    # สนใจเฉพาะการกดปุ่ม (key press)
+                    if event.value not in (1, 2):
+                        continue
+
+                    # จัดการ Enter key
+                    if event.code == ecodes.KEY_ENTER:
+                        if self.buffer:
+                            # print(f"[DEBUG] Enter pressed - sending buffer: '{self.buffer}'")  # Debug line
+                            self.barcode_queue.put(self.buffer)
+                        self.buffer = ''
+                        shift = False
+                        scanning_active = False
+                        continue
+
+                    # แปลงรหัสปุ่มเป็นตัวอักษร
+                    try:
+                        key = ecodes.KEY[event.code].replace('KEY_', '')
+                        char = self.translate_key(key, shift)
+                        if char is not None:
+                            self.buffer += char
+                            # print(f"[DEBUG] Added char: '{char}' - buffer now: '{self.buffer}'")  # Debug line
+                    except KeyError:
+                        # ไม่สนใจปุ่มที่ไม่รู้จัก
+                        continue
+            except BlockingIOError:
+                # เป็นเรื่องปกติในโหมด non-blocking ไม่ต้องทำอะไร
+                pass
+            except OSError as e:
+                if e.errno == 19:  # No such device
+                    print("❌ Scanner disconnected")
+                    break
+                else:
+                    print(f"❌ OS Error: {e}")
+            except Exception as e:
+                print(f"❌ เกิดข้อผิดพลาดใน scanner loop: {e}")
+                # รีเซ็ต buffer เมื่อมีปัญหา
+                self.buffer = ''
+                scanning_active = False
 
     def get_barcode(self):
         try:
@@ -170,6 +212,15 @@ class Scanner:
             return False
 
     def cleanup(self):
-        self._stop_event.set()
+        self._stop_event.set()                          # ตั้งค่าอีเวนต์เพื่อหยุด thread
+        
+        # รอให้ thread จบการทำงาน
+        if hasattr(self, 'thread') and self.thread.is_alive():
+            self.thread.join(timeout=2.0)
+        
+        # ปลดการจอง device
         if hasattr(self, 'device') and self.device:
-            self.device.ungrab()
+            try:
+                self.device.ungrab()
+            except Exception as e:
+                print(f"Warning: Could not ungrab device: {e}")
