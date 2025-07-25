@@ -42,6 +42,7 @@ class Dashboard:
         self.font_mini = pygame.font.SysFont('Arial', 15, bold=True)
         self.font_item = pygame.font.SysFont('Consolas', 60, bold=True)
         self.font_TH = pygame.font.SysFont('FreeSerif', 30, bold=True) # TH
+        self.font_TH_small = pygame.font.SysFont('FreeSerif', 15, bold=False) # TH
 
     def setup_colors(self):
         self.BLACK = (0, 0, 0)
@@ -206,7 +207,7 @@ class Dashboard:
         self.draw_box((975, 140, 915, 100))
         self.draw_text("QC", self.font_mini, (995, 150), self.BLUE)
         if self.qc_show_error:
-            self.draw_text("Error:" + self.qc_error_message, self.font_TH, (995, 155), self.RED)
+            self.draw_text("Error:" + self.qc_error_message, self.font_TH, (995, 180), self.RED)
         else:
             self.draw_text("Part:" + self.last_qc_barcode, self.font_item, (995, 165))
 
@@ -300,6 +301,9 @@ class Dashboard:
         self.efficiency = efficiency
         eff_color = self.get_threshold_color(self.efficiency)
         self.draw_text("OA %", self.font_title, (px_left_x_label, px_left_y))
+
+        # self.draw_text("Operational Availability", self.font_TH_small, (px_left_x_label + 50, px_left_y))
+
         pygame.draw.line(self.screen, self.GREY, (px_left_x_label, px_left_y_line), (px_left_x_value, px_left_y_line), 1)
         self.draw_text(f"{self.efficiency:5.2f}", self.font_percent, (px_left_x_value, px_left_y), eff_color, align="right")
 
