@@ -73,6 +73,7 @@ WantedBy=multi-user.target
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
 sudo systemctl enable monitor.service
+sudo systemctl disable monitor.service ปิด
 sudo systemctl start monitor.service
 ~~~
  - ตรวจสอบว่า service ทำงานหรือไม่
