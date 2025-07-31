@@ -46,11 +46,11 @@
     },
     "SUB": {
         "display_name": "Sub Assy",
-        "sewing_table": "sewing_subass",
+        "sewing_table": "sewing_sub",
         "qc_table": "qc_sub",
-        "target_field": "subass",
-        "man_plan_field": "subass_plan",
-        "man_act_field": "subass_act",
+        "target_field": "sub",
+        "man_plan_field": "sub_plan",
+        "man_act_field": "sub_act",
         "qc_ng_field": "SUB"
     }
 }
