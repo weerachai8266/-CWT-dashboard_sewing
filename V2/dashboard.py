@@ -54,7 +54,7 @@ class Dashboard:
         self.PINK = (255, 192, 203)
         self.BLUE = (50, 150, 255)
 
-    def get_threshold_color(self, value, green=90, orange=80):
+    def get_threshold_color(self, value, green=93, orange=80):
         if value >= green:
             return self.GREEN
         elif value >= orange:
@@ -255,7 +255,7 @@ class Dashboard:
 
             work_min = working_minutes_in_hour(hour)                                     #   hour
             target = int(self.target_value) if str(self.target_value).isdigit() else 0
-            target_hr = int(target * (work_min / 60)) if work_min else 0                 #   target / hr
+            target_hr = int(round(target * (work_min / 60))) if work_min else 0                 #   target / hr
             diff_hr = pcs_pd - target_hr                                                    #   diff / hr
 
             if pcs_pd != 0:
@@ -320,7 +320,7 @@ class Dashboard:
             pcs = self.hourly_output.get(hour, 0)
             work_min = working_minutes_in_hour(hour)
             target = int(self.target_value) if str(self.target_value).isdigit() else 0
-            target_hr = int(target * (work_min / 60)) if work_min else 0
+            target_hr = int(round(target * (work_min / 60))) if work_min else 0 
             diff_hr = pcs - target_hr
             diff_each_hour.append(diff_hr)
 
