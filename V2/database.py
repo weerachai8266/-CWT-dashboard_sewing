@@ -40,7 +40,7 @@ class DatabaseManager:
         # เชื่อมต่อฐานข้อมูล
         try:
             self.db = pymysql.connect(
-                host="192.168.0.44",
+                host="server01.local",
                 user="user",
                 password="user",
                 database="automotive"
@@ -107,7 +107,7 @@ class DatabaseManager:
 
     def get_man_plan(self):
         try:
-            sql = f"SELECT `{self.tables['man_plan_field']}` FROM sewing_pman ORDER BY created_at DESC LIMIT 1"
+            sql = f"SELECT `{self.tables['man_plan_field']}` FROM sewing_man_plan ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
@@ -117,7 +117,7 @@ class DatabaseManager:
 
     def get_man_act(self):
         try:
-            sql = f"SELECT `{self.tables['man_act_field']}` FROM sewing_aman ORDER BY created_at DESC LIMIT 1"
+            sql = f"SELECT `{self.tables['man_act_field']}` FROM sewing_man_act ORDER BY created_at DESC LIMIT 1"
             self.cursor.execute(sql)
             result = self.cursor.fetchone()
             return str(result[0]) if result and result[0] is not None else "0"
